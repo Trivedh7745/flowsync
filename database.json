@@ -1,0 +1,26 @@
+{
+  "workspaces": [
+    {
+      "id": "9lsyu92",
+      "name": "parashuramudu",
+      "email": "kparashuramuduk975@gmail.com",
+      "company": "Vaagdevi Engineering College",
+      "createdAt": "2026-05-24T10:01:00.463Z"
+    },
+    {
+      "id": "443w263",
+      "name": "parashuramudu",
+      "email": "kparashuramuduk975@gmail.com",
+      "company": "Vaagdevi Engineering College",
+      "createdAt": "2026-05-24T10:01:40.427Z"
+    },
+    {
+      "id": "gst9iaz",
+      "name": "parashuramudu",
+      "email": "kparashuramuduk975@gmail.com",
+      "company": "Vaagdevi Engineering College",
+      "createdAt": "2026-05-24T10:02:08.422Z"
+    }
+  ],
+  "bookings": []
+}
