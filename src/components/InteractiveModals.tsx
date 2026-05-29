@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Calendar, Clock, CheckCircle2, Loader2, Sparkles, User, Mail, Shield, Building, Globe } from "lucide-react";
 
@@ -9,6 +10,7 @@ export function InteractiveModals() {
   const [loadingStep, setLoadingStep] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const router = useRouter();
 
   // Sign up form state
   const [signupData, setSignupData] = useState({ name: "", email: "", password: "", company: "" });
@@ -62,13 +64,22 @@ export function InteractiveModals() {
         })
       });
       
+     
       if (res.ok) {
-        setLoadingStep(steps.length - 1);
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        window.dispatchEvent(new CustomEvent("db-updated"));
-        setIsSubmitting(false);
-        setSuccess(true);
-      } else {
+       setLoadingStep(steps.length - 1);
+       await new Promise((resolve) => setTimeout(resolve, 300));
+
+       window.dispatchEvent(new CustomEvent("db-updated"));
+
+       setIsSubmitting(false);
+
+       setSuccess(true);
+
+       setTimeout(() => {
+         router.push("/dashboard");
+       }, 1200);
+      }
+      else {
         setIsSubmitting(false);
         alert("Failed to register workspace in database");
       }

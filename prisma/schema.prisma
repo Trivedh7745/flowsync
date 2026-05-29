@@ -19,3 +19,83 @@ model Booking {
   time      String
   createdAt DateTime @default(now())
 }
+
+model Project {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   @default("In Progress")
+  deadline    String?
+  createdAt   DateTime @default(now())
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  tasks Task[]
+
+  invoices Invoice[]
+  meetings Meeting[]
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  company   String?
+  createdAt DateTime @default(now())
+
+  projects Project[]
+
+  invoices Invoice[]
+  meetings Meeting[]
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  title     String
+  status    String
+  priority  String
+  createdAt DateTime @default(now())
+
+  projectId String
+
+  project Project @relation(fields: [projectId], references: [id])
+}
+
+model Invoice {
+  id        String   @id @default(cuid())
+  amount    Float
+  status    String
+  dueDate   String
+  createdAt DateTime @default(now())
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  name      String
+  fileUrl   String
+  createdAt DateTime @default(now())
+}
+
+model Meeting {
+  id          String   @id @default(cuid())
+  title       String
+  date        String
+  time        String
+  meetingLink String
+  notes       String
+  status      String
+  createdAt   DateTime @default(now())
+
+  clientId  String
+  projectId String
+
+  client  Client  @relation(fields: [clientId], references: [id])
+  project Project @relation(fields: [projectId], references: [id])
+}
