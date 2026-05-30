@@ -33,6 +33,7 @@ async function ensureDb() {
   } catch {
     const initialData: DatabaseSchema = { workspaces: [], bookings: [] };
     await fs.writeFile(DB_FILE, JSON.stringify(initialData, null, 2), "utf-8");
+  
   }
 }
 
@@ -45,9 +46,17 @@ export async function readDb(): Promise<DatabaseSchema> {
 
 // Write to database
 async function writeDb(data: DatabaseSchema) {
-  await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
+  try {
+    await fs.writeFile(
+      DB_FILE,
+      JSON.stringify(data, null, 2),
+      "utf-8"
+    );
+  } catch (error) {
+    console.error("WRITE DB ERROR:", error);
+    throw error;
+  }
 }
-
 // Workspace actions
 export async function addWorkspace(name: string, email: string, company: string): Promise<Workspace> {
   const db = await readDb();

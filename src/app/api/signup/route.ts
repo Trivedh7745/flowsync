@@ -9,16 +9,34 @@ export async function POST(request: Request) {
     }
     const workspace = await addWorkspace(name, email, company);
     return NextResponse.json({ success: true, workspace });
-  } catch (error) {
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }catch (error) {
+   console.error("POST SIGNUP ERROR:", error);
+
+   return NextResponse.json(
+    {
+      error:
+        error instanceof Error
+          ? error.message
+          : String(error),
+    },
+    { status: 500 }
+   );
   }
 }
+
 
 export async function GET() {
   try {
     const db = await readDb();
     return NextResponse.json(db.workspaces);
   } catch (error) {
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
+   console.error("GET SIGNUP ERROR:", error);
+
+   return NextResponse.json(
+    {
+      error: String(error),
+    },
+    { status: 500 }
+   );
   }
 }
