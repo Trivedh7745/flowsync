@@ -1,42 +1,55 @@
 import { NextResponse } from "next/server";
-import { addWorkspace, readDb } from "@/lib/db";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, company } = await request.json();
-    if (!name || !email || !company) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-    const workspace = await addWorkspace(name, email, company);
-    return NextResponse.json({ success: true, workspace });
-  }catch (error) {
-   console.error("POST SIGNUP ERROR:", error);
+    const { name, email, company } =
+      await request.json();
 
-   return NextResponse.json(
-    {
-      error:
-        error instanceof Error
-          ? error.message
-          : String(error),
-    },
-    { status: 500 }
-   );
+    const workspace =
+      await prisma.workspace.create({
+        data: {
+          name,
+          email,
+          company,
+        },
+      });
+
+    return NextResponse.json({
+      success: true,
+      workspace,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }
 
-
 export async function GET() {
   try {
-    const db = await readDb();
-    return NextResponse.json(db.workspaces);
-  } catch (error) {
-   console.error("GET SIGNUP ERROR:", error);
+    const workspaces =
+      await prisma.workspace.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
 
-   return NextResponse.json(
-    {
-      error: String(error),
-    },
-    { status: 500 }
-   );
+    return NextResponse.json(workspaces);
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      { error: "Database error" },
+      { status: 500 }
+    );
   }
 }
