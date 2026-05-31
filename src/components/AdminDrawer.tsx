@@ -3,7 +3,22 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Database, X, RefreshCw, Trash2, Calendar, ShieldCheck, Mail, Building, Clock } from "lucide-react";
-import { Workspace, Booking } from "@/lib/db";
+type Workspace = {
+  id: string;
+  name: string;
+  email: string;
+  company: string;
+  createdAt: string;
+};
+
+type Booking = {
+  id: string;
+  name: string;
+  email: string;
+  date: string;
+  time: string;
+  createdAt: string;
+};
 
 export function AdminDrawer() {
   const [isOpen, setIsOpen] = useState(false);
