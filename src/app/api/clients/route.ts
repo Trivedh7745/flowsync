@@ -14,11 +14,13 @@ export async function GET() {
 
     return NextResponse.json(clients);
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch clients" },
+     console.error("CLIENT GET ERROR:", error);
+
+     return NextResponse.json(
+      { error: String(error) },
       { status: 500 }
-    );
-  }
+     );
+    }
 }
 
 // CREATE CLIENT
@@ -35,9 +37,11 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(client);
-  } catch (error) {
+  }catch (error) {
+    console.error("CLIENT POST ERROR:", error);
+
     return NextResponse.json(
-      { error: "Failed to create client" },
+      { error: String(error) },
       { status: 500 }
     );
   }
