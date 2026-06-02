@@ -1,9 +1,7 @@
 import { writeFile, mkdir } from "fs/promises";
 import { NextResponse } from "next/server";
 import path from "path";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
