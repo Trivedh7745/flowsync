@@ -6,6 +6,22 @@ export async function POST(request: Request) {
     const { name, email, company } =
       await request.json();
 
+    // Check existing workspace
+    const existingWorkspace =
+      await prisma.workspace.findFirst({
+        where: {
+          email,
+        },
+      });
+
+    if (existingWorkspace) {
+      return NextResponse.json({
+        success: true,
+        existing: true,
+        workspace: existingWorkspace,
+      });
+    }
+
     const workspace =
       await prisma.workspace.create({
         data: {
@@ -17,6 +33,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
+      existing: false,
       workspace,
     });
   } catch (error) {

@@ -58,31 +58,30 @@ export function InteractiveModals() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: signupData.name,
-          email: signupData.email,
-          company: signupData.company
+        name: signupData.name,
+        email: signupData.email,
+        company: signupData.company
         })
       });
-      
-     
-      if (res.ok) {
-       setLoadingStep(steps.length - 1);
-       await new Promise((resolve) => setTimeout(resolve, 300));
 
-       window.dispatchEvent(new CustomEvent("db-updated"));
+const data = await res.json();
 
-       setIsSubmitting(false);
+if (data.success) {
+  setLoadingStep(steps.length - 1);
+  await new Promise((resolve) => setTimeout(resolve, 300));
 
-       setSuccess(true);
+  window.dispatchEvent(new CustomEvent("db-updated"));
 
-       setTimeout(() => {
-         router.push("/dashboard");
-       }, 1200);
-      }
-      else {
-        setIsSubmitting(false);
-        alert("Failed to register workspace in database");
-      }
+  setIsSubmitting(false);
+  setSuccess(true);
+
+  setTimeout(() => {
+    router.push("/dashboard");
+  }, 1200);
+} else {
+  setIsSubmitting(false);
+  alert(data.error || "Failed to register workspace");
+}
     } catch (err) {
       setIsSubmitting(false);
       alert("Network database connection failure");
