@@ -13,7 +13,6 @@ datasource db {
 
 model Booking {
   id        String   @id @default(cuid())
-  userId    String
   name      String
   email     String
   date      String

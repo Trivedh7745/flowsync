@@ -4,9 +4,9 @@ import { prisma } from "@/lib/prisma";
 // CREATE BOOKING
 export async function POST(request: Request) {
   try {
-    const { name, email, date, time, userId } = await request.json();
+    const { name, email, date, time } = await request.json();
 
-    if (!name || !email || !date || !time || !userId) {
+    if (!name || !email || !date || !time ) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -19,8 +19,7 @@ export async function POST(request: Request) {
         email,
         date,
         time,
-        userId,
-      },
+      } as any,
     });
 
     return NextResponse.json({
