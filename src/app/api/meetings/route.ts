@@ -4,10 +4,15 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 
 // GET MEETINGS
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
     const meetings =
       await prisma.meeting.findMany({
+        where: {
+        userId: userId || "",
+      },
         include: {
           client: true,
           project: true,
@@ -34,6 +39,7 @@ export async function POST(req: Request) {
       await prisma.meeting.create({
         data: {
           title: body.title,
+          userId: body.userId,
           date: body.date,
           time: body.time,
           meetingLink:

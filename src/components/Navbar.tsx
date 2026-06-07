@@ -3,15 +3,37 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Moon, Sun, Menu, X, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
+  const handleLogout = async () => {
+  console.log("Logout clicked");
+
+  await supabase.auth.signOut();
+
+  console.log("Signed out");
+
+  window.location.href = "/";
+  };
 
   useEffect(() => {
     setMounted(true);
+    const getUser = async () => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  setUser(user);
+};
+
+getUser();
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
@@ -56,12 +78,33 @@ export function Navbar() {
                 {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
               </button>
             )}
-            <button 
-              onClick={() => alert("FlowSync Simulated Login:\nIn a production app, this would route to your Cognito, Auth0, or custom backend portal.")}
-              className="text-sm font-medium hover:text-primary-600 transition-colors cursor-pointer"
-            >
-              Log in
-            </button>
+           {user ? (
+  <>
+    <span className="text-sm text-muted-foreground">
+      {user.email}
+    </span>
+
+    <button
+      onClick={handleLogout}
+      className="text-sm font-medium hover:text-primary-600"
+    >
+      Logout
+    </button>
+  </>
+) : (
+  <button
+    onClick={() => {
+      window.dispatchEvent(
+        new CustomEvent("open-modal", {
+          detail: { type: "login" },
+        })
+      );
+    }}
+    className="text-sm font-medium hover:text-primary-600"
+  >
+    Log in
+  </button>
+)}
             <button 
               onClick={() => window.dispatchEvent(new CustomEvent("open-modal", { detail: { type: "signup" } }))}
               className="text-sm font-medium bg-foreground text-background hover:bg-foreground/90 px-4 py-2 rounded-full transition-colors flex items-center gap-2 cursor-pointer"
@@ -98,15 +141,30 @@ export function Navbar() {
           <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium">Pricing</a>
           <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium">FAQ</a>
           <div className="h-px bg-border my-2" />
-          <button 
-            onClick={() => {
-              setMobileMenuOpen(false);
-              alert("FlowSync Simulated Login:\nIn a production app, this would route to your Cognito, Auth0, or custom backend portal.");
-            }}
-            className="text-base font-medium text-left w-full cursor-pointer"
-          >
-            Log in
-          </button>
+         
+          {user ? (
+  <button
+    onClick={handleLogout}
+    className="text-base font-medium text-left"
+  >
+    Logout
+  </button>
+) : (
+  <button
+    onClick={() => {
+      setMobileMenuOpen(false);
+
+      window.dispatchEvent(
+        new CustomEvent("open-modal", {
+          detail: { type: "login" },
+        })
+      );
+    }}
+    className="text-base font-medium text-left"
+  >
+    Log in
+  </button>
+)}
           <button 
             onClick={() => {
               setMobileMenuOpen(false);

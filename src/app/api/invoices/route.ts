@@ -2,9 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // GET INVOICES
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
     const invoices = await prisma.invoice.findMany({
+      where: {
+        userId: userId || "",
+      },
       include: {
         client: true,
         project: true,
@@ -37,6 +43,7 @@ export async function POST(req: Request) {
         dueDate: body.dueDate,
         clientId: body.clientId,
         projectId: body.projectId,
+        userId: body.userId,
       },
     });
 

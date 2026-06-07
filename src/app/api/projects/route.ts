@@ -2,9 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // GET PROJECTS
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
     const projects = await prisma.project.findMany({
+      where: {
+        userId: userId || "",
+      },
       include: {
         client: true,
       },
@@ -30,6 +35,7 @@ export async function POST(req: Request) {
     const project = await prisma.project.create({
       data: {
         title: body.title,
+        userId: body.userId,
         description: body.description,
         status: body.status,
         clientId: body.clientId,

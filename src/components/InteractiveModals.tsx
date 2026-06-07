@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Calendar, Clock, CheckCircle2, Loader2, Sparkles, User, Mail, Shield, Building, Globe } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export function InteractiveModals() {
-  const [modalType, setModalType] = useState<"signup" | "demo" | null>(null);
+  const [modalType, setModalType] = useState<"signup" | "login" | "demo" | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -14,6 +15,10 @@ export function InteractiveModals() {
 
   // Sign up form state
   const [signupData, setSignupData] = useState({ name: "", email: "", password: "", company: "" });
+  const [loginData, setLoginData] = useState({
+  email: "",
+  password: "",
+  });
 
   // Demo booking state
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -54,39 +59,91 @@ export function InteractiveModals() {
     }
 
     try {
-      const res = await fetch("/api/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-        name: signupData.name,
-        email: signupData.email,
-        company: signupData.company
-        })
-      });
+      console.log("Supabase object:", supabase);
+      console.log("Imported supabase =", supabase);
+      const authResult = await supabase.auth.signUp({
+  email: signupData.email,
+  password: signupData.password,
+  options: {
+    emailRedirectTo:
+      "http://localhost:3000/login",
+  },
+});
+console.log("Auth Result:", authResult);
+console.log("User:", authResult.data.user);
+console.log("Session:", authResult.data.session);
 
+if (authResult.error) {
+  alert(authResult.error.message);
+  setIsSubmitting(false);
+  return;
+}
+
+const user = authResult.data.user;
+
+const res = await fetch("/api/signup", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    userId: user?.id,
+    name: signupData.name,
+    email: signupData.email,
+    company: signupData.company,
+  }),
+});
+
+console.log("API Status:", res.status);
 const data = await res.json();
+console.log("API Response:", data);
 
 if (data.success) {
-  setLoadingStep(steps.length - 1);
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  window.dispatchEvent(new CustomEvent("db-updated"));
+  window.dispatchEvent(
+    new CustomEvent("db-updated")
+  );
 
   setIsSubmitting(false);
   setSuccess(true);
 
-  setTimeout(() => {
-    router.push("/dashboard");
-  }, 1200);
-} else {
+  return;
+}
+ else {
   setIsSubmitting(false);
   alert(data.error || "Failed to register workspace");
 }
-    } catch (err) {
-      setIsSubmitting(false);
-      alert("Network database connection failure");
-    }
+    }catch (err) {
+  console.error("Signup Error:", err);
+
+  setIsSubmitting(false);
+
+  alert(
+    err instanceof Error
+      ? err.message
+      : "Unknown error"
+  );
+}
   };
+
+  const handleLoginSubmit = async (
+  e: React.FormEvent
+) => {
+  e.preventDefault();
+
+  const { error } =
+    await supabase.auth.signInWithPassword({
+      email: loginData.email,
+      password: loginData.password,
+    });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  closeModal();
+  router.push("/dashboard");
+};
 
   // Simulated demo booking with real DB saving
   const handleDemoSubmit = async (e: React.FormEvent) => {
@@ -272,20 +329,104 @@ if (data.success) {
                     </motion.div>
                     <h3 className="text-2xl font-bold mb-2">Workspace Ready!</h3>
                     <p className="text-muted-foreground mb-6 max-w-xs">
-                      We've created a premium workspace for <strong>{signupData.company || "your agency"}</strong>. Check your email for login credentials!
+                      We've created a premium workspace for <strong>{signupData.company || "your agency"}</strong>. Your account has been created successfully.
+                      Please login to access your workspace.
                     </p>
+                   
                     <button
-                      onClick={closeModal}
-                      className="px-6 py-2.5 bg-foreground text-background hover:bg-foreground/90 rounded-xl text-sm font-semibold transition-colors"
+                     onClick={() => {
+                       setSuccess(false);
+                       setModalType("login");
+                      }}
+                      className="px-6 py-2.5 bg-foreground text-background hover:bg-foreground/90 rounded-lg"
                     >
-                      Enter Dashboard
+                     Go To Login
                     </button>
                   </div>
                 )}
               </div>
             )}
+            
+ 
+              {/* 2. LOGIN MODAL CONTENT */}
+{modalType === "login" && (
+  <div className="p-8">
+    <div className="flex items-center gap-2 mb-2">
+      <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary-600 to-accent-500 flex items-center justify-center">
+        <span className="text-white font-bold text-md">F</span>
+      </div>
+      <span className="text-xl font-bold tracking-tight">
+        FlowSync
+      </span>
+    </div>
 
-            {/* 2. DEMO MODAL CONTENT */}
+    <h2 className="text-2xl font-bold mb-1">
+      Welcome Back
+    </h2>
+
+    <p className="text-sm text-muted-foreground mb-6">
+      Login to your workspace
+    </p>
+
+    <form
+      onSubmit={handleLoginSubmit}
+      className="space-y-4"
+    >
+      <div className="relative">
+        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+
+        <input
+          type="email"
+          required
+          placeholder="Work Email"
+          value={loginData.email}
+          onChange={(e) =>
+            setLoginData({
+              ...loginData,
+              email: e.target.value,
+            })
+          }
+          className="w-full pl-10 pr-4 py-3 bg-muted/40 border border-border hover:border-primary-500/30 focus:border-primary-500 rounded-xl outline-none transition-colors text-sm"
+        />
+      </div>
+
+      <div className="relative">
+        <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+
+        <input
+          type="password"
+          required
+          placeholder="Password"
+          value={loginData.password}
+          onChange={(e) =>
+            setLoginData({
+              ...loginData,
+              password: e.target.value,
+            })
+          }
+          className="w-full pl-10 pr-4 py-3 bg-muted/40 border border-border hover:border-primary-500/30 focus:border-primary-500 rounded-xl outline-none transition-colors text-sm"
+        />
+      </div>
+
+      <button
+        type="submit"
+        className="w-full py-3 bg-foreground text-background hover:bg-foreground/90 font-semibold rounded-xl text-sm transition-colors"
+      >
+        Enter Dashboard
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setModalType("signup")}
+        className="w-full text-sm text-primary-500 hover:underline"
+      >
+        New here? Create account
+      </button>
+    </form>
+  </div>
+)}
+
+            {/* 3. DEMO MODAL CONTENT */}
             {modalType === "demo" && (
               <div className="p-8">
                 {!success && !isSubmitting && (

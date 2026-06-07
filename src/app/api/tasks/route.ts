@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // GET TASKS
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const tasks = await prisma.task.findMany();
-
+     const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+    const tasks = await prisma.task.findMany({
+    where: {
+        userId: userId || ""
+      }
+    });  
     return NextResponse.json(tasks);
   } catch (error) {
     console.error(error);
@@ -24,6 +29,7 @@ export async function POST(req: Request) {
 
     const task = await prisma.task.create({
       data: {
+        userId: body.userId,
         title: body.title,
         status: body.status,
         priority: body.priority,

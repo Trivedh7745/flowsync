@@ -20,12 +20,14 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell,
 } from "recharts";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation"; 
 
 
 export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState("dashboard");
+  const router = useRouter();
 
   const [showProjectModal, setShowProjectModal] = useState(false);
 
@@ -192,21 +194,35 @@ export default function DashboardPage() {
     },
     {
       title: "Pending Invoices",
-      value: "0",
+      value: String(
+        invoices.filter(
+        (invoice) => invoice.status === "Pending"
+        ).length
+      ),
       icon: CreditCard,
     },
     {
       title: "Tasks Completed",
       value: String(
-        tasks.filter((task) => task.status === "Completed").length
+        tasks.filter(
+        (task) => task.status === "Completed"
+        ).length
       ),
       icon: BarChart3,
-    },
+}
   ];
 
   const fetchProjects = async () => {
     try {
-      const res = await fetch("/api/projects");
+      const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const res = await fetch(
+      `/api/projects?userId=${user.id}`
+    );
 
       const data = await res.json();
 
@@ -218,10 +234,17 @@ export default function DashboardPage() {
 
   const fetchClients = async () => {
     try {
-      const res = await fetch("/api/clients");
+      const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
+    if (!user) return;
+
+    const res = await fetch(
+      `/api/clients?userId=${user.id}`
+    );
       const data = await res.json();
-
+      
       setClients(data);
     } catch (error) {
       console.error(error);
@@ -230,7 +253,15 @@ export default function DashboardPage() {
 
   const fetchTasks = async () => {
     try {
-      const res = await fetch("/api/tasks");
+      const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const res = await fetch(
+      `/api/tasks?userId=${user.id}`
+    );
 
       const data = await res.json();
 
@@ -242,8 +273,15 @@ export default function DashboardPage() {
 
   const fetchInvoices = async () => {
     try {
-      const res = await fetch("/api/invoices");
+      const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
+    if (!user) return;
+
+    const res = await fetch(
+      `/api/invoices?userId=${user.id}`
+    );
       const data = await res.json();
 
       setInvoices(data);
@@ -255,7 +293,14 @@ export default function DashboardPage() {
 
   const fetchDocuments = async () => {
    try {
-    const res = await fetch("/api/documents");
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const res = await fetch(
+      "/api/documents");
 
     const text = await res.text();
 
@@ -279,7 +324,15 @@ export default function DashboardPage() {
 
  const fetchMeetings = async () => {
   try {
-    const res = await fetch("/api/meetings");
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const res = await fetch(
+      `/api/meetings?userId=${user.id}`
+    );
 
     const text = await res.text();
 
@@ -314,6 +367,18 @@ export default function DashboardPage() {
  };
 
   useEffect(() => {
+    const checkAuth = async () => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    router.push("/");
+    return;
+  }
+};
+
+checkAuth();
     fetchProjects();
     fetchClients();
     fetchTasks();
@@ -343,13 +408,22 @@ export default function DashboardPage() {
 
       return;
     }
+    
+    const {
+  data: { user },
+} = await supabase.auth.getUser();
 
+if (!user) {
+  alert("Please login first");
+  return;
+}
     const res = await fetch("/api/projects", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        userId: user.id,
         title: projectData.title,
         description: projectData.description,
         deadline: projectData.deadline,
@@ -393,13 +467,30 @@ export default function DashboardPage() {
 
       return;
     }
+    
+  const {
+  data: { session },
+} = await supabase.auth.getSession();
 
+console.log("SESSION:", session);
+
+  const {
+  data: { user },
+} = await supabase.auth.getUser();
+
+console.log("USER:", user);
+    
+   if (!user) {
+  alert("Please login first");
+  return;
+}
     const res = await fetch("/api/clients", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        userId: user?.id,
         name: clientData.name,
         email: clientData.email,
         company: clientData.company,
@@ -440,13 +531,24 @@ const createTask = async () => {
 
       return;
     }
+    
+      const {
+      data: { user },
+      } = await supabase.auth.getUser();
 
-    const res = await fetch("/api/tasks", {
+    console.log("USER:", user);
+    
+     if (!user) {
+       alert("Please login first");
+      return; 
+     }
+     const res = await fetch("/api/tasks", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        userId: user?.id,
         title: taskData.title,
         status: taskData.status,
         priority: taskData.priority,
@@ -535,13 +637,24 @@ const createTask = async () => {
 
       return;
     }
+    
+      const {
+       data: { user },
+      } = await supabase.auth.getUser();
 
+      console.log("USER:", user);
+    
+      if (!user) {
+       alert("Please login first");
+        return;
+      }  
     const res = await fetch("/api/invoices", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        userId: user?.id,
         amount: parseFloat(invoiceData.amount),
         status: invoiceData.status,
         dueDate: invoiceData.dueDate,
@@ -709,13 +822,24 @@ const createTask = async () => {
 
       return;
     }
+    
+      const {
+  data: { user },
+} = await supabase.auth.getUser();
 
+console.log("USER:", user);
+    
+   if (!user) {
+  alert("Please login first");
+  return;
+   }
     const res = await fetch("/api/meetings", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        userId: user?.id,
         title: meetingData.title,
         date: meetingData.date,
         time: meetingData.time,
@@ -933,28 +1057,32 @@ const createTask = async () => {
 
             {/* Stats */}
             <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
-              {stats.map((item) => (
-                <div
-                  key={item.title}
-                  className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-xl transition"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <item.icon className="w-8 h-8 text-indigo-600" />
+              {stats.map((item) => {
+                const Icon = item.icon as any;
 
-                    <span className="text-sm text-gray-400">
-                      This Month
-                    </span>
+                return (
+                  <div
+                    key={item.title}
+                    className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-xl transition"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <Icon className="w-8 h-8 text-indigo-600" />
+
+                      <span className="text-sm text-gray-400">
+                        This Month
+                      </span>
+                    </div>
+
+                    <h3 className="text-3xl font-bold text-gray-900">
+                      {item.value}
+                    </h3>
+
+                    <p className="text-gray-500 mt-2">
+                      {item.title}
+                    </p>
                   </div>
-
-                  <h3 className="text-3xl font-bold text-gray-900">
-                    {item.value}
-                  </h3>
-
-                  <p className="text-gray-500 mt-2">
-                    {item.title}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </section>
 
             {/* Workflow */}
@@ -2148,7 +2276,7 @@ function SidebarItem({
 
 function WorkflowStep({ label }: { label: string }) {
   return (
-    <div className="px-5 py-3 rounded-xl bg-white shadow-sm border border-gray-200">
+    <div className="px-5 py-3 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-900 font-medium">
       {label}
     </div>
   );
@@ -2156,7 +2284,7 @@ function WorkflowStep({ label }: { label: string }) {
 
 function Arrow() {
   return (
-    <span className="text-gray-400 text-xl font-bold">
+    <span className="text-gray-600 text-xl font-bold">
       →
     </span>
   );

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, company } =
+    const { name, email, company, userId } =
       await request.json();
 
     // Check existing workspace
@@ -28,6 +28,7 @@ export async function POST(request: Request) {
           name,
           email,
           company,
+          userId,
         },
       });
 

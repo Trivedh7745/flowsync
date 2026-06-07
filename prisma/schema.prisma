@@ -13,6 +13,7 @@ datasource db {
 
 model Booking {
   id        String   @id @default(cuid())
+  userId    String
   name      String
   email     String
   date      String
@@ -22,6 +23,7 @@ model Booking {
 
 model Workspace {
   id        String   @id @default(cuid())
+  userId    String?   @unique
   name      String
   email     String   @unique
   company   String
@@ -30,6 +32,7 @@ model Workspace {
 
 model Project {
   id          String   @id @default(cuid())
+  userId      String
   title       String
   description String?
   status      String   @default("In Progress")
@@ -47,6 +50,7 @@ model Project {
 
 model Client {
   id        String   @id @default(cuid())
+  userId    String
   name      String
   email     String
   company   String?
@@ -60,6 +64,7 @@ model Client {
 
 model Task {
   id        String   @id @default(cuid())
+  userId    String
   title     String
   status    String
   priority  String
@@ -72,6 +77,7 @@ model Task {
 
 model Invoice {
   id        String   @id @default(cuid())
+  userId    String
   amount    Float
   status    String
   dueDate   String
@@ -86,6 +92,7 @@ model Invoice {
 
 model Document {
   id        String   @id @default(cuid())
+  userId    String
   name      String
   fileUrl   String
   createdAt DateTime @default(now())
@@ -93,6 +100,7 @@ model Document {
 
 model Meeting {
   id          String   @id @default(cuid())
+  userId      String
   title       String
   date        String
   time        String
