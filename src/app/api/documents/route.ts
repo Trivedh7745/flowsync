@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // GET DOCUMENTS
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
     const documents =
       await prisma.document.findMany({
+        where: {
+          userId: userId || "",
+        },
         orderBy: {
           createdAt: "desc",
         },
@@ -29,6 +34,7 @@ export async function POST(req: Request) {
         data: {
           name: body.name,
           fileUrl: body.fileUrl,
+          userId: body.userId,
         },
       });
 
@@ -42,6 +48,7 @@ export async function POST(req: Request) {
     );
   }
 }
+
 
 // DELETE DOCUMENT
 export async function DELETE(req: Request) {

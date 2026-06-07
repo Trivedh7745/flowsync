@@ -300,7 +300,8 @@ export default function DashboardPage() {
     if (!user) return;
 
     const res = await fetch(
-      "/api/documents");
+      `/api/documents?userId=${user.id}`
+    );
 
     const text = await res.text();
 
@@ -744,6 +745,15 @@ const createTask = async () => {
       return;
     }
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("Please login first");
+      return;
+    }
+
     const formData = new FormData();
 
     formData.append(
@@ -755,6 +765,9 @@ const createTask = async () => {
       "file",
       documentData.file
     );
+
+    formData.append("userId", user.id);
+    
 
     const res = await fetch(
       "/api/documents/upload",

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -35,6 +36,15 @@ export async function POST(req: Request) {
       recursive: true,
     });
 
+    const userId = formData.get("userId") as string;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Missing userId" },
+        { status: 400 }
+      );
+    }
+
     const fileName =
       Date.now() + "-" + file.name;
 
@@ -50,6 +60,7 @@ export async function POST(req: Request) {
         data: {
           name,
           fileUrl: `/uploads/${fileName}`,
+          userId,
         },
       });
 
@@ -68,3 +79,4 @@ export async function POST(req: Request) {
     );
   }
 }
+
