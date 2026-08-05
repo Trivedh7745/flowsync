@@ -226,6 +226,18 @@ item.label === "Current Installment"
 `
     )
     .join("");
+if (!resend) {
+
+    return NextResponse.json(
+        {
+            error: "Resend is not configured.",
+        },
+        {
+            status: 500,
+        }
+    );
+
+}
 const emailResponse = await resend.emails.send({
  attachments: [
     {

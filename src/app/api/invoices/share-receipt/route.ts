@@ -559,7 +559,18 @@ color:#9CA3AF;
 </div>
 
 `;
+if (!resend) {
 
+    return NextResponse.json(
+        {
+            error: "Resend is not configured.",
+        },
+        {
+            status: 500,
+        }
+    );
+
+}
 await resend.emails.send({
 
     from:
