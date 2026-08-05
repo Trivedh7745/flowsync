@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Database, X, RefreshCw, Trash2, Calendar, ShieldCheck, Mail, Building, Clock } from "lucide-react";
+import toast from "react-hot-toast";
 type Workspace = {
   id: string;
   name: string;
@@ -57,7 +58,7 @@ export function AdminDrawer() {
     if (!confirm("Are you sure you want to simulate clearing the database table entries?")) return;
     // For safety in this environment, we just let them know or we could hook up a clear API.
     // Let's do a simple frontend reset alert or fetch clear if we want, but letting them know is perfect!
-    alert("Simulated: Admin database truncate completed.");
+    toast.error("Simulated: Admin database truncate completed.");
     setWorkspaces([]);
     setBookings([]);
   };

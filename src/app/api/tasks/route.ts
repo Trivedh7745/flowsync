@@ -9,17 +9,30 @@ export async function GET(req: Request) {
     const tasks = await prisma.task.findMany({
     where: {
         userId: userId || ""
-      }
+      },
+    include: {
+      project: true,
+      subtasks: true,
+    },
+    orderBy: {
+    createdAt: "desc",
+    },  
     });  
     return NextResponse.json(tasks);
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      { error: "Failed to fetch tasks" },
-      { status: 500 }
-    );
-  }
+  } catch (error:any) {
+    
+      console.error("FULL ERROR:", error);
+    
+      return NextResponse.json(
+        {
+          error: String(error)
+        },
+        {
+          status: 500
+        }
+      );
+    
+    }
 }
 
 // CREATE TASK
@@ -34,6 +47,7 @@ export async function POST(req: Request) {
         status: body.status,
         priority: body.priority,
         projectId: body.projectId,
+        dueDate: body.dueDate,
       },
     });
 
@@ -50,26 +64,51 @@ export async function POST(req: Request) {
 
 // UPDATE TASK
 export async function PUT(req: Request) {
+
   try {
+
     const body = await req.json();
 
-    const updatedTask = await prisma.task.update({
-      where: {
-        id: body.id,
-      },
-      data: {
-        status: body.status,
-      },
-    });
+    const updatedTask =
+      await prisma.task.update({
+
+        where: {
+          id: body.id,
+        },
+
+        data: {
+
+          title: body.title,
+
+          status: body.status,
+
+          priority: body.priority,
+
+          projectId: body.projectId,
+
+          dueDate: body.dueDate,
+
+        },
+
+      });
 
     return NextResponse.json(updatedTask);
+
   } catch (error) {
+
     console.error(error);
+
     return NextResponse.json(
-      { error: "Failed to update task" },
-      { status: 500 }
+      {
+        error: "Failed to update task",
+      },
+      {
+        status: 500,
+      }
     );
+
   }
+
 }
 
 // DELETE TASK

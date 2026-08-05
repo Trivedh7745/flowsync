@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 const inter = Inter({
@@ -10,7 +11,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "FlowSync - The Ultimate Freelancer OS",
-  description: "Manage clients, projects, invoices, files, emails, and payments in one optimized workspace.",
+  description:
+    "Manage clients, projects, invoices, files, emails, and payments in one optimized workspace.",
 };
 
 export default function RootLayout({
@@ -20,13 +22,25 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} min-h-full flex flex-col font-sans antialiased`}>
+      <body
+        className={`${inter.variable} min-h-full flex flex-col font-sans antialiased`}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                borderRadius: "12px",
+              },
+            }}
+          />
+
           {children}
         </ThemeProvider>
       </body>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,10 +19,10 @@ export default function LoginPage() {
       });
 
     if (error) {
-      alert(error.message);
+      toast.error(error.message);
       return;
     }
-
+    toast.success("Logged in successfully");
     router.push("/dashboard");
   };
 

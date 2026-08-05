@@ -14,6 +14,8 @@ export async function POST(req: Request) {
 
     const file = formData.get("file") as File;
 
+    const clientId = formData.get("clientId") as string;
+
     if (!file) {
       return NextResponse.json(
         { error: "No file uploaded" },
@@ -61,6 +63,7 @@ export async function POST(req: Request) {
           name,
           fileUrl: `/uploads/${fileName}`,
           userId,
+          clientId,
         },
       });
 

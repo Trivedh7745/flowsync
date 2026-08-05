@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Calendar, Clock, CheckCircle2, Loader2, Sparkles, User, Mail, Shield, Building, Globe } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import toast from "react-hot-toast";
 
 export function InteractiveModals() {
   const [modalType, setModalType] = useState<"signup" | "login" | "demo" | null>(null);
@@ -16,6 +17,7 @@ export function InteractiveModals() {
   // Sign up form state
   const [signupData, setSignupData] = useState({ name: "", email: "", password: "", company: "" });
   const [loginData, setLoginData] = useState({
+  name:"",
   email: "",
   password: "",
   });
@@ -67,6 +69,9 @@ export function InteractiveModals() {
   options: {
     emailRedirectTo:
       "http://localhost:3000/login",
+   data: {
+      name: signupData.name,
+    },    
   },
 });
 console.log("Auth Result:", authResult);
@@ -74,7 +79,7 @@ console.log("User:", authResult.data.user);
 console.log("Session:", authResult.data.session);
 
 if (authResult.error) {
-  alert(authResult.error.message);
+  toast.error(authResult.error.message);
   setIsSubmitting(false);
   return;
 }
@@ -110,14 +115,14 @@ if (data.success) {
 }
  else {
   setIsSubmitting(false);
-  alert(data.error || "Failed to register workspace");
+  toast.error(data.error || "Failed to register workspace");
 }
     }catch (err) {
   console.error("Signup Error:", err);
 
   setIsSubmitting(false);
 
-  alert(
+  toast.error(
     err instanceof Error
       ? err.message
       : "Unknown error"
@@ -137,11 +142,12 @@ if (data.success) {
     });
 
   if (error) {
-    alert(error.message);
+    toast.error(error.message);
     return;
   }
 
   closeModal();
+  toast.success("Workspace Created Successfully");
   router.push("/dashboard");
 };
 
@@ -169,11 +175,11 @@ if (data.success) {
         setSuccess(true);
       } else {
         setIsSubmitting(false);
-        alert("Failed to schedule booking in database");
+        toast.error("Failed to schedule booking in database");
       }
     } catch (err) {
       setIsSubmitting(false);
-      alert("Network database connection failure");
+      toast.error("Network database connection failure");
     }
   };
 

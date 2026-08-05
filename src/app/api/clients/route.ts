@@ -17,13 +17,19 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(clients);
-  } catch (error) {
-     console.error("CLIENT GET ERROR:", error);
-
-     return NextResponse.json(
-      { error: String(error) },
-      { status: 500 }
-     );
+  } catch (error:any) {
+    
+      console.error("FULL ERROR:", error);
+    
+      return NextResponse.json(
+        {
+          error: String(error)
+        },
+        {
+          status: 500
+        }
+      );
+    
     }
 }
 
@@ -57,4 +63,35 @@ export async function POST(req: Request) {
     { status: 500 }
   );
 }
+}
+
+//delete client
+export async function DELETE(req: Request) {
+  try {
+    const { id } = await req.json();
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Missing client id" },
+        { status: 400 }
+      );
+    }
+
+    await prisma.client.delete({
+      where: {
+        id,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      { error: "Delete failed" },
+      { status: 500 }
+    );
+  }
 }

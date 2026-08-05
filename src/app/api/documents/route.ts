@@ -35,6 +35,7 @@ export async function POST(req: Request) {
           name: body.name,
           fileUrl: body.fileUrl,
           userId: body.userId,
+          clientId: body.clientId,
         },
       });
 
