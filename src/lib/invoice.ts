@@ -1,5 +1,3 @@
-import { buildFinancialSummary } from "@/lib/invoice";
-
 export function buildFinancialSummary(invoice: any) {
 
     const projectBudget =
@@ -21,6 +19,14 @@ export function buildFinancialSummary(invoice: any) {
         invoice.paymentSchedules.find(
             (payment: any) => !payment.paidDate
         );
+    let installmentStatus = null;
+
+  if (invoice.paymentSchedule) {
+    installmentStatus =
+        currentInstallment
+            ? "Pending"
+            : "Paid";
+  }
 
     return {
 
@@ -32,10 +38,8 @@ export function buildFinancialSummary(invoice: any) {
 
         currentInstallment,
 
-        installmentStatus:
-            currentInstallment
-                ? "Pending"
-                : "Paid",
+        installmentStatus,
+        
 
     };
 
