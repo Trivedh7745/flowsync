@@ -117,52 +117,68 @@ export default function ReceiptActions({
                 </button>
 
                 {/* Print */}
-
                 <button
-                    onClick={handlePrint}
-                    className="
-                        flex
-                        items-center
-                        gap-3
-                        rounded-2xl
-                        border
-                        border-slate-300
-                        px-8
-                        py-4
-                        font-semibold
-                        hover:bg-slate-50
-                        hover:-translate-y-1
-                        transition-all
-                    "
-                >
+    onClick={handlePrint}
+    className="
+        flex
+        items-center
+        gap-3
+        rounded-2xl
+        border
+        border-slate-300
+        bg-white
+        text-slate-700
+        px-8
+        py-4
+        font-semibold
+        shadow-sm
+        hover:bg-slate-50
+        hover:border-indigo-300
+        hover:text-indigo-600
+        hover:-translate-y-1
+        transition-all
+        duration-300
+    "
+>
+    <Printer
+        className="
+            w-5
+            h-5
+            text-slate-600
+        "
+    />
 
-                    <Printer className="w-5 h-5" />
+    Print
 
-                    Print
-
-                </button>
+</button>
 
                 {/* Share */}
 
                 <button
                     onClick={handleShare}
-                    className="
-                        flex
-                        items-center
-                        gap-3
-                        rounded-2xl
-                        border
-                        border-slate-300
-                        px-8
-                        py-4
-                        font-semibold
-                        hover:bg-slate-50
-                        hover:-translate-y-1
-                        transition-all
-                    "
+                     className="
+        flex
+        items-center
+        gap-3
+        rounded-2xl
+        border
+        border-slate-300
+        bg-white
+        text-slate-700
+        px-8
+        py-4
+        font-semibold
+        shadow-sm
+        hover:bg-slate-50
+        hover:border-indigo-300
+        hover:text-indigo-600
+        hover:-translate-y-1
+        transition-all
+        duration-300
+    "
                 >
 
-                    <Share2 className="w-5 h-5" />
+                    <Share2 className="w-5 h-5" text-slate-600 />
 
                     Share
 
