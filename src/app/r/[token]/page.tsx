@@ -1,21 +1,19 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
-interface PageProps {
-    params: {
-        token: string;
-    };
-}
-
 export default async function ReceiptPage({
     params,
-}: PageProps) {
+}: {
+    params: Promise<{ token: string }>;
+}) {
+
+    const { token } = await params;
 
     const invoice =
         await prisma.invoice.findFirst({
 
             where: {
-                publicReceiptToken: params.token,
+                publicReceiptToken: token,
             },
 
             include: {
@@ -37,21 +35,15 @@ export default async function ReceiptPage({
             <h1>Payment Receipt</h1>
 
             <p>
-                Receipt:
-                {" "}
-                {invoice.invoiceNumber}
+                Receipt: {invoice.invoiceNumber}
             </p>
 
             <p>
-                Client:
-                {" "}
-                {invoice.client?.name}
+                Client: {invoice.client?.name}
             </p>
 
             <p>
-                Amount:
-                {" "}
-                ₹{invoice.amount}
+                Amount: ₹{invoice.amount}
             </p>
 
         </div>
