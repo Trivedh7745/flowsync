@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import PublicReceipt from "@/components/receipt/PublicReceipt";
 
 export default async function ReceiptPage({
     params,
@@ -30,23 +31,9 @@ export default async function ReceiptPage({
 
     return (
 
-        <div style={{ padding: 40 }}>
-
-            <h1>Payment Receipt</h1>
-
-            <p>
-                Receipt: {invoice.invoiceNumber}
-            </p>
-
-            <p>
-                Client: {invoice.client?.name}
-            </p>
-
-            <p>
-                Amount: ₹{invoice.amount}
-            </p>
-
-        </div>
+         <PublicReceipt
+        invoice={invoice}
+    />
 
     );
 
