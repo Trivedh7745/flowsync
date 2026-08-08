@@ -111,7 +111,26 @@ export default function ReceiptTable({
 
                         <div className="text-center">
 
-                            1
+    <span
+        className="
+            inline-flex
+            items-center
+            justify-center
+            min-w-10
+            h-10
+            px-3
+            rounded-full
+            bg-indigo-100
+            text-indigo-700
+            text-base
+            font-bold
+            border
+            border-indigo-200
+            shadow-sm
+        "
+    >
+        1
+    </span>
 
                         </div>
 
