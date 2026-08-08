@@ -75,6 +75,10 @@ catch (error) {
 
         console.error("Receipt PDF Error:", error);
 
+if (error instanceof Error) {
+    console.error(error.stack);
+}
+
         return NextResponse.json(
             {
                 error: "Failed to generate receipt.",

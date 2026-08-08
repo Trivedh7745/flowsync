@@ -2,7 +2,6 @@
 
 import {
     Download,
-    Printer,
     Share2,
 } from "lucide-react";
 
@@ -20,9 +19,6 @@ export default function ReceiptActions({
             "REC"
         );
 
-    const receiptUrl =
-        `${window.location.origin}/r/${invoice.publicReceiptToken}`;
-
     const handleDownload = () => {
 
         window.open(
@@ -39,6 +35,8 @@ export default function ReceiptActions({
     };
 
     const handleShare = async () => {
+        const receiptUrl =
+        `${window.location.origin}/r/${invoice.publicReceiptToken}`;
 
         try {
 
@@ -116,42 +114,6 @@ export default function ReceiptActions({
 
                 </button>
 
-                {/* Print */}
-                <button
-    onClick={handlePrint}
-    className="
-        flex
-        items-center
-        gap-3
-        rounded-2xl
-        border
-        border-slate-300
-        bg-white
-        text-slate-700
-        px-8
-        py-4
-        font-semibold
-        shadow-sm
-        hover:bg-slate-50
-        hover:border-indigo-300
-        hover:text-indigo-600
-        hover:-translate-y-1
-        transition-all
-        duration-300
-    "
->
-    <Printer
-        className="
-            w-5
-            h-5
-            text-slate-600
-        "
-    />
-
-    Print
-
-</button>
-
                 {/* Share */}
 
                 <button
@@ -178,7 +140,7 @@ export default function ReceiptActions({
     "
                 >
 
-                    <Share2 className="w-5 h-5" text-slate-600 />
+                    <Share2 className="w-5 h-5 text-slate-600" />
 
                     Share
 
