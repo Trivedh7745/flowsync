@@ -9,6 +9,38 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
 
+  // Automatically mark overdue invoices
+await prisma.invoice.updateMany({
+
+    where: {
+
+        userId: userId || "",
+
+        status: {
+
+            in: [
+                "Sent",
+                "Pending",
+                "Partially Paid",
+            ],
+
+        },
+
+        dueDate: {
+
+            lt: new Date(),
+
+        },
+
+    },
+
+    data: {
+
+        status: "Overdue",
+
+    },
+
+});
     const invoices = await prisma.invoice.findMany({
       where: {
         userId: userId || "",

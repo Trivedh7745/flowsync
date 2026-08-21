@@ -11,6 +11,12 @@ import { generateInvoicePDF } from "@/lib/invoicePdf";
 import { buildFinancialSummary } from "@/lib/invoice";
 import Image from "next/image";
 import {
+  FileSpreadsheet,
+  FileImage,
+  File,
+  User,
+} from "lucide-react";
+import {
   Send,
   AlertTriangle,
   CircleDollarSign,
@@ -212,6 +218,13 @@ const [clientActivity, setClientActivity] = useState<any[]>([]);
 
   const [documents, setDocuments] = useState<any[]>([]);
 
+  const [documentSearch, setDocumentSearch] = useState("");
+
+  const [documentSort, setDocumentSort] = useState("Sort By");
+
+  const [editingDocument, setEditingDocument] =
+  useState<any>(null);
+
   const [meetings, setMeetings] = useState<any[]>([]);
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -285,8 +298,8 @@ interface Invoice {
 };
 
   paymentSchedules: PaymentSchedule[];
+  publicReceiptToken: string | null;
 }
-
 
 function calculateInvoiceProgress(invoice: Invoice) {
 
@@ -621,17 +634,42 @@ const filteredInvoices = invoices
 .filter((invoice: any) => {
 
   return (
+
     (invoice.invoiceNumber || "")
-      .toLowerCase()
-      .includes(invoiceSearch.toLowerCase())
+        .toLowerCase()
+        .includes(invoiceSearch.toLowerCase())
 
     ||
 
     (invoice.client?.name || "")
-      .toLowerCase()
-      .includes(invoiceSearch.toLowerCase())
+        .toLowerCase()
+        .includes(invoiceSearch.toLowerCase())
 
-  );
+    ||
+
+    (invoice.project?.title || "")
+        .toLowerCase()
+        .includes(invoiceSearch.toLowerCase())
+
+    ||
+
+    Number(invoice.amount)
+        .toString()
+        .includes(invoiceSearch)
+
+    ||
+
+    Number(invoice.amount)
+        .toLocaleString("en-IN")
+        .includes(invoiceSearch)
+
+    ||
+
+    (invoice.status || "")
+        .toLowerCase()
+        .includes(invoiceSearch.toLowerCase())
+
+);
 
 })
 
@@ -660,6 +698,115 @@ const filteredInvoices = invoices
   }
 
 });
+
+const getDocumentIcon = (
+  fileType?: string | null,
+  fileName?: string
+) => {
+  const extension = (
+    fileName?.split(".").pop() || ""
+  ).toLowerCase();
+
+  const type = (fileType || "").toLowerCase();
+
+  // PDF
+  if (
+    type === "application/pdf" ||
+    extension === "pdf"
+  ) {
+    return (
+      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-red-50 text-red-600">
+        <FileText className="h-7 w-7" />
+      </div>
+    );
+  }
+
+  // EXCEL / CSV
+  if (
+    type.includes("spreadsheet") ||
+    type.includes("excel") ||
+    ["xls", "xlsx", "csv"].includes(extension)
+  ) {
+    return (
+      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-green-50 text-green-600">
+        <FileSpreadsheet className="h-7 w-7" />
+      </div>
+    );
+  }
+
+  // WORD
+  if (
+    type.includes("word") ||
+    type.includes("document") ||
+    ["doc", "docx"].includes(extension)
+  ) {
+    return (
+      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+        <FileText className="h-7 w-7" />
+      </div>
+    );
+  }
+
+  // IMAGE
+  if (
+    type.startsWith("image/") ||
+    ["jpg", "jpeg", "png", "webp", "gif"].includes(
+      extension
+    )
+  ) {
+    return (
+      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+        <FileImage className="h-7 w-7" />
+      </div>
+    );
+  }
+
+  // DEFAULT
+  return (
+    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+      <File className="h-7 w-7" />
+    </div>
+  );
+};
+
+const formatFileSize = (bytes?: number | null) => {
+  if (!bytes) return "Unknown size";
+
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const filteredDocuments = [...documents]
+  .filter((document) =>
+    document.name
+      .toLowerCase()
+      .includes(documentSearch.toLowerCase())
+  )
+  .sort((a, b) => {
+    if (documentSort === "oldest") {
+      return (
+        new Date(a.createdAt).getTime() -
+        new Date(b.createdAt).getTime()
+      );
+    }
+
+    if (documentSort === "name") {
+      return a.name.localeCompare(b.name);
+    }
+
+    return (
+      new Date(b.createdAt).getTime() -
+      new Date(a.createdAt).getTime()
+    );
+  });
+
 
 const clientRevenueMap: Record<string, number> = {};
 
@@ -908,13 +1055,21 @@ const selectedInvoiceProject =
 const projectBudget =
   selectedInvoiceProject?.budget || 0;
 
+  const [documentData, setDocumentData] = useState<{
+  name: string;
+  clientId: string;
+  projectId: string;
+  file: File | null;
+}>({
+  name: "",
+  clientId: "",
+  projectId: "",
+  file: null,
+});
 
-  const [documentData, setDocumentData] =
-  useState({
-    name: "",
-    file: null as File | null,
-    clientId: "",
-  });
+const clientProjects = projects.filter(
+  (project) => project.clientId === documentData.clientId
+);
 
   const [meetingData, setMeetingData] =
   useState({
@@ -973,9 +1128,11 @@ const projectBudget =
     );
 
       const data = await res.json();
-      console.log("Selected Project:", selectedProject);
-      console.log(data);
-      setProjects(data);
+
+console.log("Selected Project:", selectedProject);
+console.log("Projects API response:", data);
+
+setProjects(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(error);
     }
@@ -2679,24 +2836,10 @@ const handleCopyReceiptLink = async () => {
 
     try {
 
-        const response = await fetch(
-            "/api/invoices/share-receipt",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    invoiceId: selectedInvoice.id,
-                }),
-            }
-        );
+        const receiptUrl =
+    `${process.env.NEXT_PUBLIC_APP_URL}/r/${selectedInvoice.publicReceiptToken}`;
 
-        const data = await response.json();
-
-        await navigator.clipboard.writeText(
-            data.publicUrl
-        );
+        await navigator.clipboard.writeText(receiptUrl);
 
         toast.success(
             "Receipt link copied.",
@@ -2934,17 +3077,33 @@ const handleDeletePayment = async (
 
 };
 
-  const createDocument = async () => {
-   try {
-    if (
-      !documentData.name ||
-      !documentData.file ||
-      !documentData.clientId
-    ) {
-      toast.error("Please fill all fields");
+const openEditDocument = (document: any) => {
+  console.log("Editing document:", document);
 
-      return;
-    }
+  setEditingDocument(document);
+
+  setDocumentData({
+    name: document.name || "",
+    file: null,
+    clientId: document.clientId || "",
+    projectId: document.projectId || "",
+  });
+
+  setShowDocumentModal(true);
+};
+
+
+const createDocument = async () => {
+   try {
+     if (
+  !documentData.name ||
+  !documentData.file ||
+  !documentData.clientId ||
+  !documentData.projectId
+) {
+  toast.error("Please fill all fields");
+  return;
+}
 
     const {
       data: { user },
@@ -2971,6 +3130,8 @@ const handleDeletePayment = async (
     
     formData.append("clientId", documentData.clientId);
 
+    formData.append("projectId", documentData.projectId);
+
     const res = await fetch(
       "/api/documents/upload",
       {
@@ -2982,21 +3143,31 @@ const handleDeletePayment = async (
     const data = await res.json();
 
     console.log(data);
-
     if (res.ok) {
-        toast.success("Document uploaded successfully");
-      await fetchDocuments();
+  toast.success("Document uploaded successfully");
 
-      setShowDocumentModal(false);
+  // Close modal immediately
+  setShowDocumentModal(false);
 
-      setDocumentData({
-        name: "",
-        file: null,
-        clientId: "",
-      });
-    } else {
-      toast.error("Upload failed");
-    }
+  // Add new document card immediately
+  setDocuments((prev: any[]) => [
+    data,
+    ...prev,
+  ]);
+
+  // Reset form
+  setDocumentData({
+    name: "",
+    file: null,
+    clientId: "",
+    projectId: "",
+  });
+
+  // Sync latest data in background
+  fetchDocuments();
+} else {
+  toast.error(data.error || "Upload failed");
+}
    } catch (error) {
     console.error(error);
 
@@ -3025,8 +3196,63 @@ const handleDeletePayment = async (
     toast.error("Failed to delete document");
    }
   };
-
   
+const updateDocument = async () => {
+  try {
+    if (!documentData.name || !documentData.clientId) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    if (!editingDocument) return;
+
+    const res = await fetch("/api/documents", {
+      method: "PUT",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+        id: editingDocument.id,
+        name: documentData.name,
+        clientId: documentData.clientId,
+        projectId: documentData.projectId || null,
+      }),
+    });
+
+    const data = await res.json();
+
+    console.log(data);
+
+    if (res.ok) {
+      toast.success("Document updated successfully");
+
+      // Close immediately
+      setShowDocumentModal(false);
+
+      // Clear edit mode
+      setEditingDocument(null);
+
+      // Reset form
+      setDocumentData({
+        name: "",
+        file: null,
+        clientId: "",
+        projectId: "",
+      });
+
+      // Refresh cards
+      await fetchDocuments();
+    } else {
+      toast.error(data.error || "Failed to update document");
+    }
+  } catch (error) {
+    console.error(error);
+
+    toast.error("Failed to update document");
+  }
+};
 
   const createMeeting = async () => {
   try {
@@ -3747,7 +3973,19 @@ className="
               </div>
               <button
                 onClick={() => setShowClientModal(true)}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-3 rounded-xl font-medium"
+                className="
+                 px-6
+  py-3
+  rounded-2xl
+  font-semibold
+  text-white
+  bg-gradient-to-r
+  from-indigo-600
+  to-violet-600
+  hover:from-indigo-700
+  hover:to-violet-700
+  shadow-lg
+  transition"
               >
                 + New Client
               </button>
@@ -3940,16 +4178,19 @@ onClick={() => deleteClient(client.id)}
 
     </div>
 
-
     <h3
-    className="
-    text-2xl font-bold
+  className="
+    flex
+    items-center
+    gap-2
+    text-2xl
     font-bold
     mt-6
-    "
-    >
-      {client.name}
-    </h3>
+  "
+>
+  <User className="h-5 w-5 text-muted-foreground" />
+  {client.name}
+</h3>
 
     <p
     className="
@@ -4529,9 +4770,12 @@ flex-col
   </h3>
 
   {/* Client */}
-  <p className="text-gray-500 mt-1">
+  <div className="flex items-center gap-2 font-medium mt-1">
+                <User className="h-5 w-4 text-muted-foreground" />
+  <span className="text-gray-500 ">
     {project.client?.name}
-  </p>
+  </span>
+  </div>
 
   {/* Progress */}
   <div className="mt-4">
@@ -5561,10 +5805,12 @@ transition
 </h3>
 
 {/* Project */}
-
-<p className="text-gray-500 mt-1">
-{task.project?.title || "No Project"}
-</p>
+<div className="flex items-center gap-2 font-medium mt-2">
+  <FolderKanban className="h-4 w-4 text-muted-foreground" />
+  <p className="truncate">
+                  {task.project?.title || "No Project"}
+                </p>
+</div>
 
 {/* Priority + Status */}
 
@@ -6352,17 +6598,19 @@ text-lg
 
 }}
     className="
-      bg-gradient-to-r
-      from-indigo-600
-      to-purple-600
-      text-white
       px-6
-      py-3
-      rounded-2xl
-      font-semibold
-      shadow-lg
-      hover:shadow-xl
-      transition
+       py-3
+  rounded-2xl
+  font-semibold
+  text-white
+  bg-gradient-to-r
+  from-indigo-600
+  to-violet-600
+  hover:from-indigo-700
+  hover:to-violet-700
+  shadow-lg
+  transition
+      
     "
   >
     + New Invoice
@@ -6612,24 +6860,27 @@ className="text-indigo-600"
 
   {/* Invoice Number */}
 
-  <h3 className="text-2xl font-bold mt-5">
+  <h3 className="text-2xl font-semibold mt-5">
 
     {invoice.invoiceNumber}
 
   </h3>
 
   {/* Client */}
-  <p className="text-xs text-gray-400">
+  <p className="text-xs text-gray-400 mt-2">
 Client
 </p>
+ <div className="flex items-center gap-2 font-medium">
+      <User className="h-4 w-4 text-muted-foreground" />
 
 <p className="font-medium">
 {invoice.client?.name}
 </p>
+</div>
 
   {/* Amount */}
 <div className="mt-5 flex items-center gap-2">
-    <h2 className="text-3xl font-bold">
+    <h2 className="text-2xl text-indigo-800 font-bold">
         ₹{Number(invoice.amount).toLocaleString("en-IN")}
     </h2>
 
@@ -8578,176 +8829,274 @@ Cancel
 )
 }
 
+
 {/* DOCUMENTS */}
 {activeSection === "documents" && (
-  <section className="w-full space-y-6 pt-8">
-    <div className="w-full flex max-w-5xl justify-between items-center mb-8">
-  <div>
-    <h2 className="text-4xl font-bold">
-      Documents
-    </h2>
+  <section className="w-full">
+    {/* HEADER */}
+    <div className="w-full flex justify-between items-center mb-8">
+      <div>
+        <h2 className="text-4xl font-bold">
+          Documents
+        </h2>
 
-    <p className="text-muted-foreground mt-2">
-      Manage your files and attachments
-    </p>
-  </div>
+        <p className="text-muted-foreground mt-2">
+          Manage your files and attachments
+        </p>
+      </div>
 
-  <button
-    onClick={() => setShowDocumentModal(true)}
-    className="
-      bg-gradient-to-r
-      from-indigo-600
-      to-purple-600
-      text-white
-      px-5
-      py-3
-      rounded-xl
-      font-medium
-      hover:opacity-90
-      transition
-    "
-  >
-    + Upload Document
-  </button>
-</div>
+      <button
+        onClick={() => {
+  setEditingDocument(null);
 
-{documents.length === 0 ? (
-  <div className="text-center py-20">
-    <div className="text-6xl mb-4">
-      📄
+  setDocumentData({
+    name: "",
+    file: null,
+    clientId: "",
+    projectId: "",
+  });
+
+  setShowDocumentModal(true);
+}}
+        className="
+           px-6
+       py-3
+  rounded-2xl
+  font-semibold
+  text-white
+  bg-gradient-to-r
+  from-indigo-600
+  to-violet-600
+  hover:from-indigo-700
+  hover:to-violet-700
+  shadow-lg
+  transition
+        "
+      >
+        + Upload Document
+      </button>
     </div>
 
-    <h3 className="text-2xl font-semibold">
-      No Documents Yet
-    </h3>
+    {/* SEARCH + SORT */}
+    <div className="flex gap-4 mb-8">
+      <div className="relative flex-[8]">
+        <Search
+          className="
+absolute
+left-4
+top-1/2
+-transform
+-translate-y-1/2
+text-gray-400
+"
+        />
 
-    <p className="text-muted-foreground mt-2">
-      Upload your first document
-    </p>
-  </div>
-) : (
+        <input
+          type="text"
+          value={documentSearch}
+          onChange={(e) => setDocumentSearch(e.target.value)}
+          placeholder="Search documents..."
+          className="
+           w-full
+bg-white
+border
+border-gray-300
+rounded-2xl
+pl-12
+pr-4
+py-3
+outline-none
+shadow-sm
+transition-all
+duration-300
+hover:shadow-md
+focus:border-indigo-500
+focus:ring-4
+focus:ring-indigo-100
+focus:shadow-lg
+          "
+        />
+      </div>
 
-    <div className="w-full max-w-5xl space-y-4">
-      {documents.map((document) => (
-        <div
-  key={document.id}
-  className="
-    bg-gradient-to-r
-    from-indigo-50
-    to-purple-50
-    dark:from-slate-800
-    dark:to-slate-900
-    border
-    border-border
-    rounded-2xl
-    p-5
-    shadow-sm
-    hover:shadow-md
-    hover:-translate-y-0.5
-    transition-all
-    duration-300
-  "
+      <select
+    value={documentSort}
+    onChange={(e)=>setDocumentSort(e.target.value)}
+    className="
+      flex-[1.3] 
+px-5
+py-3
+rounded-2xl
+border
+border-gray-300
+bg-white
+outline-none
+shadow-sm
+transition-all
+duration-300
+hover:shadow-md
+focus:border-indigo-500
+focus:ring-4
+focus:ring-indigo-100
+focus:shadow-lg
+"
 >
-  <div className="flex justify-between items-start">
 
-    <div>
-      <h3 className="text-xl font-semibold">
-        📄 {document.name}
-      </h3>
+    <option value="Newest">
+      Sort By
+    </option>
 
-      <p className="text-muted-foreground mt-2">
-        Uploaded {
-          new Date(document.createdAt)
-            .toLocaleDateString()
-        }
-      </p>
+    <option value="Newest">
+      Newest
+    </option>
 
-      <a
-  href={document.fileUrl}
-  target="_blank"
-  rel="noopener noreferrer"
+    <option value="Oldest">
+      Oldest
+    </option>
+    
+     <option value="name">Name A-Z</option>
+
+  </select>
+    </div>
+
+    {/* EMPTY STATE */}
+    {filteredDocuments.length === 0 ? (
+      <div className="text-center py-20">
+        <div className="text-6xl mb-4">
+          📄
+        </div>
+
+        <h3 className="text-2xl font-semibold">
+          {documents.length === 0
+            ? "No Documents Yet"
+            : "No Documents Found"}
+        </h3>
+
+        <p className="text-muted-foreground mt-2">
+          {documents.length === 0
+            ? "Upload your first document"
+            : "Try another search"}
+        </p>
+      </div>
+    ) : (
+      /* 3-COLUMN DOCUMENT GRID */
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {filteredDocuments.map((document) => (
+          <div
+            key={document.id}
+            className="
+ bg-white
+rounded-3xl
+border
+border-gray-100
+shadow-sm
+hover:shadow-xl
+hover:-translate-y-1
+transition-all
+duration-300
+p-6
+flex
+flex-col
+            "
+          >
+            {/* TOP SECTION */}
+            <div className="flex items-start justify-between">
+              {getDocumentIcon(
+                document.fileType,
+                document.name
+              )}
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() =>
+  openEditDocument(document)
+}
+                  className="
+                     text-gray-400
+          hover:text-indigo-600
+          transition
+                    
+                  "
+                  title="Edit document"
+                >
+                  <Pencil className="h-5 w-5" />
+                </button>
+
+                <button
+  onClick={() => deleteDocument(document.id)}
   className="
-    inline-flex
-    items-center
-    mt-3
-    text-green-600
-    hover:text-green-700
-    font-medium
+    text-gray-400
+    hover:text-red-500
     transition
   "
+  title="Delete document"
 >
-  Open File
-</a>
-    </div>
+  <Trash2 className="h-5 w-5" />
+</button>
+              </div>
+            </div>
 
-    <div className="flex items-center gap-2">
+            {/* DOCUMENT DETAILS */}
+            <div className="mt-4">
+              <h3
+                className="
+                  text-lg
+                  font-bold
+                  truncate
+                "
+                title={document.name}
+              >
+                {document.name}
+              </h3>
 
-  <a
-    href={document.fileUrl}
-    download
-    className="
-      bg-green-600
-      text-white
-      px-4
-      py-2
-      rounded-xl
-      font-medium
-      hover:bg-green-700
-      transition
-    "
-  >
-    Download
-  </a>
+              <p className="text-sm text-muted-foreground mt-1">
+                {formatFileSize(document.fileSize)}
+                {" • "}
+                {new Date(
+                  document.createdAt
+                ).toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </p>
+            </div>
 
-  <button
-    onClick={() =>
-      toast("Edit feature coming soon")
-    }
-    className="
-      p-2
-      rounded-lg
-      bg-primary/10
-      text-primary
-      hover:bg-primary/20
-      transition
-    "
-  >
-    ✏️
-  </button>
+            {/* DIVIDER */}
+            <div className="my-5 border-t border-border" />
 
-  <button
-    onClick={() => {
-      if (
-        confirm(
-          `Delete "${document.name}"?`
-        )
-      ) {
-        deleteDocument(document.id);
-      }
-    }}
-    className="
-      bg-gradient-to-r
-      from-indigo-600
-      to-purple-600
-      text-white
-      px-4
-      py-2
-      rounded-xl
-      font-medium
-      hover:opacity-90
-      transition
-    "
-  >
-    Delete
-  </button>
+            {/* CLIENT */}
+            <div className="mb-4">
+              <p className="text-xs text-muted-foreground mb-1">
+                Client
+              </p>
 
-</div>
+              <div className="flex items-center gap-2 font-medium">
+                <User className="h-4 w-4 text-muted-foreground" />
 
-  </div>
-</div>
-      ))}
-    </div>
-)}
+                <span>
+                  {document.client?.name || "No Client"}
+                </span>
+              </div>
+            </div>
+
+            {/* PROJECT */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">
+                Project
+              </p>
+
+              <div className="flex items-center gap-2 font-medium">
+                <FolderKanban className="h-4 w-4 text-muted-foreground" />
+
+                <span className="truncate">
+                  {document.project?.title || "No Project"}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
   </section>
 )}
 
@@ -9985,11 +10334,16 @@ editingProject
 {showDocumentModal && (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
+      
       <h2 className="text-2xl font-bold mb-6">
-        Upload Document
+        {editingDocument
+    ? "Edit Document"
+    : "Upload Document"}
       </h2>
 
       <div className="space-y-4">
+
+        {/* DOCUMENT NAME */}
         <input
           type="text"
           placeholder="Document Name"
@@ -10000,60 +10354,165 @@ editingProject
               name: e.target.value,
             })
           }
-          className="w-full border border-gray-300 rounded-xl px-4 py-3"
+          className="
+            w-full
+            border
+            border-gray-300
+            rounded-xl
+            px-4
+            py-3
+          "
         />
-      <select
-  value={documentData.clientId}
-  onChange={(e) =>
-    setDocumentData({
-      ...documentData,
-      clientId: e.target.value,
-    })
-  }
-  className="w-full border border-gray-300 rounded-xl px-4 py-3"
->
-  <option value="">
-    Select Client
-  </option>
 
-  {clients.map((client) => (
-    <option
-      key={client.id}
-      value={client.id}
-    >
-      {client.name}
-    </option>
-  ))}
-</select>
-     
-        <input
-          type="file"
-          accept=".pdf,.doc,.docx"
+        {/* CLIENT */}
+        <select
+          value={documentData.clientId}
           onChange={(e) =>
             setDocumentData({
-             ...documentData,
-             file: e.target.files?.[0] || null,
+              ...documentData,
+              clientId: e.target.value,
+              projectId: "",
             })
           }
-          className="w-full border border-gray-300 rounded-xl px-4 py-3"
-        />
+          className="
+            w-full
+            border
+            border-gray-300
+            rounded-xl
+            px-4
+            py-3
+          "
+        >
+          <option value="">
+            Select Client
+          </option>
 
+          {clients.map((client) => (
+            <option
+              key={client.id}
+              value={client.id}
+            >
+              {client.name}
+            </option>
+          ))}
+        </select>
+
+        {/* PROJECT */}
+        <select
+          value={documentData.projectId}
+          onChange={(e) =>
+            setDocumentData({
+              ...documentData,
+              projectId: e.target.value,
+            })
+          }
+          disabled={!documentData.clientId}
+          className="
+            w-full
+            border
+            border-gray-300
+            rounded-xl
+            px-4
+            py-3
+            disabled:bg-gray-100
+            disabled:text-gray-400
+            disabled:cursor-not-allowed
+          "
+        >
+          <option value="">
+            Select Project
+          </option>
+
+          {Array.isArray(projects) &&
+            projects
+              .filter(
+                (project) =>
+                  project.clientId ===
+                  documentData.clientId
+              )
+              .map((project) => (
+                <option
+                  key={project.id}
+                  value={project.id}
+                >
+                  {project.title}
+                </option>
+              ))}
+        </select>
+
+        {/* FILE */}
+        <div>
+  <input
+    type="file"
+    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv"
+    onChange={(e) =>
+      setDocumentData({
+        ...documentData,
+        file: e.target.files?.[0] || null,
+      })
+    }
+    className="w-full border border-gray-300 rounded-xl px-4 py-3"
+  />
+
+  {editingDocument && (
+    <p className="text-xs text-muted-foreground mt-2">
+      Leave the file unchanged to keep the current document.
+    </p>
+  )}
+</div>
+
+        {/* ACTIONS */}
         <div className="flex gap-3">
           <button
-            onClick={createDocument}
-            className="flex-1 bg-indigo-600 text-white py-3 rounded-xl"
-          >
-            Upload
-          </button>
+  onClick={
+    editingDocument
+      ? updateDocument
+      : createDocument
+  }
+  className="
+    flex-1
+    bg-gradient-to-r
+    from-indigo-600
+    to-purple-600
+    text-white
+    py-3
+    rounded-xl
+    font-medium
+    hover:opacity-90
+    transition
+  "
+>
+  {editingDocument
+    ? "Save Changes"
+    : "Upload Document"}
+</button>
 
           <button
-            onClick={() =>
-              setShowDocumentModal(false)
-            }
-            className="flex-1 border border-gray-300 py-3 rounded-xl"
+            onClick={() => {
+              setShowDocumentModal(false);
+              setEditingDocument(null);
+
+              setDocumentData({
+                name: "",
+                file: null,
+                clientId: "",
+                projectId: "",
+              });
+            }}
+            className="
+              flex-1
+              border
+              border-gray-300
+              py-3
+              rounded-xl
+              font-medium
+              hover:bg-gray-50
+              transition
+            "
           >
             Cancel
           </button>
+
         </div>
       </div>
     </div>
