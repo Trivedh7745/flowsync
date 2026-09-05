@@ -82,62 +82,69 @@ export async function PUT(req: Request) {
     const body = await req.json();
 
     // 1. Update subtask
-    const updatedSubtask = await prisma.subtask.update({
-      where: {
-        id: body.id,
-      },
-      data: {
-        title: body.title ?? undefined,
-        completed: body.completed ?? undefined,
-      },
-    });
+    const updatedSubtask =
+      await prisma.subtask.update({
+        where: {
+          id: body.id,
+        },
+        data: {
+          title: body.title ?? undefined,
+          completed:
+            body.completed ?? undefined,
+        },
+      });
 
+    // 2. Create activity
     await prisma.activity.create({
-
-  data: {
-
-    taskId: updatedSubtask.taskId,
-
-    type: body.completed
-      ? "SUBTASK_COMPLETED"
-      : "SUBTASK_UNCHECKED",
-
-    title: body.completed
-      ? "Subtask Completed"
-      : "Subtask Updated",
-
-    description: updatedSubtask.title,
-
-    icon: body.completed
-      ? "✅"
-      : "🔄",
-
-  },
-
-});
-
-    // 2. Get all subtasks of this task
-    const subtasks = await prisma.subtask.findMany({
-      where: {
+      data: {
         taskId: updatedSubtask.taskId,
+
+        type: body.completed
+          ? "SUBTASK_COMPLETED"
+          : "SUBTASK_UNCHECKED",
+
+        title: body.completed
+          ? "Subtask Completed"
+          : "Subtask Updated",
+
+        description:
+          updatedSubtask.title,
+
+        icon: body.completed
+          ? "✅"
+          : "🔄",
       },
     });
 
-    const totalSubtasks = subtasks.length;
+    // 3. Get all subtasks of this task
+    const subtasks =
+      await prisma.subtask.findMany({
+        where: {
+          taskId:
+            updatedSubtask.taskId,
+        },
+      });
 
-    const completedSubtasks = subtasks.filter(
-      (subtask) => subtask.completed
-    ).length;
+    const totalSubtasks =
+      subtasks.length;
 
-    // 3. Calculate progress
+    const completedSubtasks =
+      subtasks.filter(
+        (subtask) =>
+          subtask.completed
+      ).length;
+
+    // 4. Calculate progress
     const progress =
       totalSubtasks === 0
         ? 0
         : Math.round(
-            (completedSubtasks / totalSubtasks) * 100
+            (completedSubtasks /
+              totalSubtasks) *
+              100
           );
 
-    // 4. Calculate status
+    // 5. Calculate status
     let status = "Not Started";
 
     if (progress === 100) {
@@ -146,24 +153,72 @@ export async function PUT(req: Request) {
       status = "In Progress";
     }
 
-    // 5. Update parent task
-    await prisma.task.update({
-      where: {
-        id: updatedSubtask.taskId,
-      },
-      data: {
-        progress,
-        status,
-      },
-    });
+    // 6. Update parent task
+    const updatedTask =
+      await prisma.task.update({
+        where: {
+          id: updatedSubtask.taskId,
+        },
+        data: {
+          progress,
+          status,
+        },
+        include: {
+          project: true,
+        },
+      });
 
-    return NextResponse.json(updatedSubtask);
+    // 7. Create Task Completed notification
+    // only when the task has just become completed
+    if (
+      status === "Completed" &&
+      body.completed === true
+    ) {
+      await prisma.notification.create({
+        data: {
+          userId:
+            updatedTask.userId,
+
+          key:
+            `task-${updatedTask.id}-completed`,
+
+          type:
+            "task_completed",
+
+          title:
+            "Task Completed",
+
+          message:
+            `You have completed "${updatedTask.title}" successfully. Complete the remaining tasks to finish the project within the deadline.`,
+
+          entityType:
+            "task",
+
+          entityId:
+            updatedTask.id,
+
+          priority:
+            "success",
+        },
+      }).catch((error: any) => {
+        // Ignore duplicate notification
+        if (error?.code !== "P2002") {
+          throw error;
+        }
+      });
+    }
+
+    return NextResponse.json(
+      updatedSubtask
+    );
+
   } catch (error) {
     console.error(error);
 
     return NextResponse.json(
       {
-        error: "Failed to update subtask",
+        error:
+          "Failed to update subtask",
       },
       {
         status: 500,

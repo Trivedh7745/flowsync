@@ -51,7 +51,7 @@ export function FeaturesSection() {
               transition={{ duration: 0.4, delay: i * 0.05 }}
               className="glass p-6 rounded-2xl group hover:border-primary-500/50 transition-colors"
             >
-              <div className="w-10 h-10 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 {feature.icon}
               </div>
               <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>

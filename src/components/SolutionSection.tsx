@@ -61,8 +61,8 @@ export function SolutionSection() {
                 <div className="relative z-10 w-full max-w-sm glass rounded-xl p-6 shadow-xl border border-border/50">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
-                        <span className="text-primary-600 dark:text-primary-400 font-bold">F</span>
+                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                        <span className="text-primary-600 font-bold">F</span>
                       </div>
                       <div>
                         <div className="text-sm font-semibold">FlowSync Hub</div>

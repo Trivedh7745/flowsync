@@ -6,11 +6,11 @@ import { CheckCircle2 } from "lucide-react";
 const plans = [
   {
     name: "Starter",
-    price: "$15",
+    price: "$0",
     description: "Perfect for solo freelancers just getting started.",
-    features: ["Up to 5 active clients", "Basic CRM & Invoicing", "Kanban boards", "Stripe integration", "Standard support"],
+    features: ["Up to 50 active clients", "Basic CRM & Invoicing", "Grid-Layout Cards", "Stripe integration", "Standard support"],
     highlighted: false,
-    cta: "Start Free Trial"
+    cta: "Start Free"
   },
   {
     name: "Professional",

@@ -176,7 +176,7 @@ export function AdminDrawer() {
                             <tr key={row.id} className="hover:bg-muted/10 transition-colors">
                               <td className="px-6 py-4 font-mono text-xs text-primary-500">{row.id}</td>
                               <td className="px-6 py-4 font-medium flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 text-xs flex items-center justify-center font-bold">
+                                <span className="w-6 h-6 rounded-full bg-primary-100 text-primary-600 text-xs flex items-center justify-center font-bold">
                                   {row.name.charAt(0)}
                                 </span>
                                 {row.name}
@@ -227,7 +227,7 @@ export function AdminDrawer() {
                             <tr key={row.id} className="hover:bg-muted/10 transition-colors">
                               <td className="px-6 py-4 font-mono text-xs text-primary-500">{row.id}</td>
                               <td className="px-6 py-4 font-medium flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-full bg-accent-100 dark:bg-accent-950/40 text-accent-600 dark:text-accent-400 text-xs flex items-center justify-center font-bold">
+                                <span className="w-6 h-6 rounded-full bg-accent-100 text-accent-600 text-xs flex items-center justify-center font-bold">
                                   {row.name.charAt(0)}
                                 </span>
                                 {row.name}

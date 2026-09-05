@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "next dev --turbopack",
     "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint"
@@ -12,23 +12,28 @@
     "@prisma/client": "^6.19.3",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
+    "asposeslidescloud": "^26.6.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.40.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.16.0",
+    "mammoth": "^1.12.1",
     "next": "16.2.6",
     "next-themes": "^0.4.6",
     "pdf-lib": "^1.17.1",
+    "pptxtojson": "^2.1.0",
     "prisma": "^6.19.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hot-toast": "^2.6.0",
+    "react-pdf": "^10.5.0",
     "react-scroll": "^1.9.3",
     "recharts": "^3.8.1",
     "resend": "^6.17.2",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

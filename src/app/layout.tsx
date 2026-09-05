@@ -25,24 +25,17 @@ export default function RootLayout({
       <body
         className={`${inter.variable} min-h-full flex flex-col font-sans antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                borderRadius: "12px",
-              },
-            }}
-          />
+        <Toaster
+  position="top-right"
+  toastOptions={{
+    duration: 3000,
+    style: {
+      borderRadius: "12px",
+    },
+  }}
+/>
 
-          {children}
-        </ThemeProvider>
+{children}
       </body>
     </html>
   );

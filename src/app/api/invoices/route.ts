@@ -9,6 +9,38 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
 
+  // Automatically mark overdue invoices
+await prisma.invoice.updateMany({
+
+    where: {
+
+        userId: userId || "",
+
+        status: {
+
+            in: [
+                "Sent",
+                "Pending",
+                "Partially Paid",
+            ],
+
+        },
+
+        dueDate: {
+
+            lt: new Date(),
+
+        },
+
+    },
+
+    data: {
+
+        status: "Overdue",
+
+    },
+
+});
     const invoices = await prisma.invoice.findMany({
       where: {
         userId: userId || "",
@@ -167,7 +199,34 @@ const invoiceNumber =
   paymentSchedule: body.paymentSchedule ?? false,
 
 }
-    });
+   });
+    // CREATE INVOICE NOTIFICATION
+await prisma.notification
+  .create({
+    data: {
+      userId: invoice.userId,
+
+      key: `invoice-${invoice.id}-created`,
+
+      type: "invoice_created",
+
+      title: "Invoice Created",
+
+      message: `Invoice "${invoice.invoiceNumber}" has been created successfully.`,
+
+      entityType: "invoice",
+
+      entityId: invoice.id,
+
+      priority: "info",
+    },
+  })
+  .catch((error: any) => {
+    // Ignore duplicate notification
+    if (error?.code !== "P2002") {
+      throw error;
+    }
+  });
     if (body.paymentSchedule) {
 
     await prisma.paymentSchedule.create({
@@ -370,83 +429,121 @@ export async function DELETE(req: Request) {
 }
 
 export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
 
-    try {
+    const {
+      invoiceId,
+      paid,
+    } = body;
 
-        const body = await req.json();
+    const existingInvoice =
+      await prisma.invoice.findUnique({
+        where: {
+          id: invoiceId,
+        },
+        include: {
+          project: true,
+        },
+      });
 
-        const {
-
-            invoiceId,
-
-            paid,
-
-        } = body;
-
-        const updatedInvoice =
-            await prisma.invoice.update({
-
-                where: {
-
-                    id: invoiceId,
-
-                },
-
-                data: {
-
-                    paidDate:
-
-                        paid
-
-                            ? new Date()
-
-                            : null,
-
-                    status:
-
-                        paid
-
-                            ? "Paid"
-
-                            : "Sent",
-
-                },
-
-                include: {
-
-                    client: true,
-
-                    project: true,
-
-                    paymentSchedules: true,
-
-                },
-
-            });
-
-        return NextResponse.json(updatedInvoice);
-
-    } catch (error) {
-
-        console.error(error);
-
-        return NextResponse.json(
-
-            {
-
-                error: "Unable to update invoice.",
-
-            },
-
-            {
-
-                status: 500,
-
-            }
-
-        );
-
+    if (!existingInvoice) {
+      return NextResponse.json(
+        {
+          error: "Invoice not found.",
+        },
+        {
+          status: 404,
+        }
+      );
     }
 
+    const updatedInvoice =
+      await prisma.invoice.update({
+        where: {
+          id: invoiceId,
+        },
+        data: {
+          paidDate: paid
+            ? new Date()
+            : null,
+
+          status: paid
+            ? "Paid"
+            : "Sent",
+        },
+        include: {
+          client: true,
+          project: true,
+          paymentSchedules: true,
+        },
+      });
+
+    // Create payment notification
+    if (paid) {
+      const invoiceNumber =
+        updatedInvoice.invoiceNumber ||
+        updatedInvoice.id;
+
+      await prisma.notification.create({
+        data: {
+          userId: updatedInvoice.userId,
+
+          key: `invoice-${updatedInvoice.id}-paid`,
+
+          type: "invoice_paid",
+
+          title: "Payment Received",
+
+          message: `The payment for invoice "${invoiceNumber}" has been successfully received.`,
+
+          entityType: "invoice",
+
+          entityId: updatedInvoice.id,
+
+          priority: "success",
+        },
+      });
+
+      // Project payment notification
+      if (updatedInvoice.project) {
+        await prisma.notification.create({
+          data: {
+            userId: updatedInvoice.userId,
+
+            key: `project-${updatedInvoice.project.id}-payment-received`,
+
+            type: "project_payment_received",
+
+            title: "Project Payment Received",
+
+            message: `Payment for "${updatedInvoice.project.title}" has been successfully received. The completed project is now ready to be shared with the client.`,
+
+            entityType: "project",
+
+            entityId: updatedInvoice.project.id,
+
+            priority: "success",
+          },
+        });
+      }
+    }
+
+    return NextResponse.json(
+      updatedInvoice
+    );
+
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      {
+        error: "Unable to update invoice.",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
 }
 

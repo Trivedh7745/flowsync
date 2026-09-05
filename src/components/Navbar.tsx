@@ -1,14 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useTheme } from "next-themes";
-import { Moon, Sun, Menu, X, ArrowRight } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
-  const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -24,22 +21,28 @@ export function Navbar() {
   };
 
   useEffect(() => {
-    setMounted(true);
-    const getUser = async () => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const getUser = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  setUser(user);
-};
+    setUser(user);
+  };
 
-getUser();
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  getUser();
+
+  const handleScroll = () => {
+    setIsScrolled(window.scrollY > 20);
+  };
+
+  window.addEventListener("scroll", handleScroll);
+
+  return () =>
+    window.removeEventListener(
+      "scroll",
+      handleScroll
+    );
+}, []);
 
   return (
     <nav
@@ -69,15 +72,6 @@ getUser();
 
           {/* Right Side Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            {mounted && (
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
-                aria-label="Toggle theme"
-              >
-                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-            )}
            {user ? (
   <>
     <span className="text-sm text-muted-foreground">
@@ -115,14 +109,6 @@ getUser();
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-4">
-            {mounted && (
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground cursor-pointer"
-              >
-                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-            )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="text-foreground cursor-pointer"

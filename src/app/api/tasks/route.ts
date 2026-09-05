@@ -39,19 +39,46 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-
     const task = await prisma.task.create({
-      data: {
-        userId: body.userId,
-        title: body.title,
-        status: body.status,
-        priority: body.priority,
-        projectId: body.projectId,
-        dueDate: body.dueDate,
-      },
-    });
+  data: {
+    userId: body.userId,
+    title: body.title,
+    status: body.status,
+    priority: body.priority,
+    projectId: body.projectId,
+    dueDate: body.dueDate,
+  },
+});
 
-    return NextResponse.json(task);
+// CREATE TASK CREATED NOTIFICATION
+await prisma.notification
+  .create({
+    data: {
+      userId: task.userId,
+
+      key: `task-${task.id}-created`,
+
+      type: "task_created",
+
+      title: "Task Created",
+
+      message: `Task "${task.title}" has been added successfully.`,
+
+      entityType: "task",
+
+      entityId: task.id,
+
+      priority: "info",
+    },
+  })
+  .catch((error: any) => {
+    // Ignore duplicate notification
+    if (error?.code !== "P2002") {
+      throw error;
+    }
+  });
+
+return NextResponse.json(task);
   } catch (error) {
     console.error(error);
 
@@ -61,6 +88,7 @@ export async function POST(req: Request) {
     );
   }
 }
+
 
 // UPDATE TASK
 export async function PUT(req: Request) {

@@ -31,15 +31,6 @@
   --muted-foreground: #71717a;
 }
 
-.dark {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --card: rgba(24, 24, 27, 0.7);
-  --card-foreground: #fafafa;
-  --border: #27272a;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-}
 
 body {
   background: var(--background);
@@ -64,11 +55,6 @@ body {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
 }
 
-.dark .glass-panel {
-  background: linear-gradient(145deg, rgba(24,24,27,0.4) 0%, rgba(24,24,27,0.1) 100%);
-  border: 1px solid rgba(255,255,255,0.05);
-}
-
 /* Premium Gradient Text */
 .text-gradient {
   background-clip: text;
@@ -80,4 +66,29 @@ body {
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
+}
+
+.ppt-text-content p {
+  margin: 0;
+  padding: 0;
+}
+
+.ppt-text-content div {
+  margin: 0;
+  padding: 0;
+}
+
+.ppt-text-content br {
+  display: block;
+}
+
+.ppt-text-content {
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere;
+}
+
+.ppt-text-content p,
+.ppt-text-content div,
+.ppt-text-content span {
+  white-space: inherit !important;
 }
