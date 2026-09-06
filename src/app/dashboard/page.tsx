@@ -4253,19 +4253,41 @@ const hasUnreadNotifications =
     (notification: any) => !notification.read
   );
 
+useEffect(() => {
+  if (!user?.id) return;
+
+  fetchNotifications();
+
+  const interval = setInterval(() => {
+    fetchNotifications();
+  }, 10000);
+
+  return () => clearInterval(interval);
+}, [user?.id]);
+
 const fetchNotifications = async () => {
   if (!user?.id) return;
 
   try {
     const res = await fetch(
-      `/api/notifications?userId=${user.id}`
+      `/api/notifications?userId=${user.id}`,
+      {
+        cache: "no-store",
+      }
     );
 
-    if (!res.ok) return;
+    if (!res.ok) {
+      console.error(
+        "Failed to fetch notifications"
+      );
+      return;
+    }
 
     const data = await res.json();
 
-    setNotifications(data);
+    setNotifications(
+      Array.isArray(data) ? data : []
+    );
   } catch (error) {
     console.error(
       "Failed to fetch notifications:",
