@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   CheckCircle2,
@@ -154,6 +155,7 @@ function WorkflowNode({
   );
 }
 export function HeroSection() {
+  const router = useRouter();
   return (
     <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
       {/* Background Gradients */}
@@ -203,7 +205,7 @@ export function HeroSection() {
               className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4"
             >
               <button 
-                onClick={() => window.dispatchEvent(new CustomEvent("open-modal", { detail: { type: "signup" } }))}
+                onClick={() => router.push("/signup")}
                 className="w-full sm:w-auto px-8 py-4 bg-foreground text-background hover:bg-foreground/90 rounded-full font-medium text-lg transition-all flex items-center justify-center gap-2 group cursor-pointer"
               >
                 Start Free

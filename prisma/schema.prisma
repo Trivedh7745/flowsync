@@ -22,7 +22,7 @@ model Workspace {
   userId    String?  @unique
   name      String
   email     String   @unique
-  company   String
+  company   String?
   createdAt DateTime @default(now())
 }
 

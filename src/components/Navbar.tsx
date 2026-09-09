@@ -88,11 +88,7 @@ export function Navbar() {
 ) : (
   <button
     onClick={() => {
-      window.dispatchEvent(
-        new CustomEvent("open-modal", {
-          detail: { type: "login" },
-        })
-      );
+      router.push("/login");
     }}
     className="text-sm font-medium hover:text-primary-600"
   >
@@ -100,7 +96,7 @@ export function Navbar() {
   </button>
 )}
             <button 
-              onClick={() => window.dispatchEvent(new CustomEvent("open-modal", { detail: { type: "signup" } }))}
+              onClick={() => router.push("/signup")}
               className="text-sm font-medium bg-foreground text-background hover:bg-foreground/90 px-4 py-2 rounded-full transition-colors flex items-center gap-2 cursor-pointer"
             >
               Start Free
@@ -138,13 +134,7 @@ export function Navbar() {
 ) : (
   <button
     onClick={() => {
-      setMobileMenuOpen(false);
-
-      window.dispatchEvent(
-        new CustomEvent("open-modal", {
-          detail: { type: "login" },
-        })
-      );
+      router.push("/login");
     }}
     className="text-base font-medium text-left"
   >
@@ -154,7 +144,7 @@ export function Navbar() {
           <button 
             onClick={() => {
               setMobileMenuOpen(false);
-              window.dispatchEvent(new CustomEvent("open-modal", { detail: { type: "signup" } }));
+              router.push("/signup");
             }}
             className="text-base font-medium bg-foreground text-background px-4 py-2 rounded-lg text-center cursor-pointer"
           >

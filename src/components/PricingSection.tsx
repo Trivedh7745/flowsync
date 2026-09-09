@@ -84,7 +84,12 @@ export function PricingSection() {
                   if (plan.name === "Agency") {
                     window.dispatchEvent(new CustomEvent("open-modal", { detail: { type: "demo" } }));
                   } else {
-                    window.dispatchEvent(new CustomEvent("open-modal", { detail: { type: "signup" } }));
+                    window.dispatchEvent(
+  new CustomEvent("open-modal", {
+    detail: { type: "signup" },
+  })
+);
+                    
                   }
                 }}
                 className={`w-full py-3 rounded-xl font-semibold transition-colors cursor-pointer ${
