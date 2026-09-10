@@ -36,6 +36,46 @@ export default function LoginPage() {
   };
 }, [router]);
 
+useEffect(() => {
+  const handleGoogleMessage = async (event: MessageEvent) => {
+    if (event.origin !== window.location.origin) {
+      return;
+    }
+
+    if (
+      event.data?.type ===
+      "FLOWSYNC_GOOGLE_LOGIN_SUCCESS"
+    ) {
+      setGoogleLoading(false);
+
+      toast.success("Logged in successfully");
+
+      router.replace("/dashboard");
+    }
+
+    if (
+      event.data?.type ===
+      "FLOWSYNC_GOOGLE_LOGIN_ERROR"
+    ) {
+      setGoogleLoading(false);
+
+      toast.error("Google login failed");
+    }
+  };
+
+  window.addEventListener(
+    "message",
+    handleGoogleMessage
+  );
+
+  return () => {
+    window.removeEventListener(
+      "message",
+      handleGoogleMessage
+    );
+  };
+}, [router]);
+
   useEffect(() => {
   const handleAuthState = async () => {
     const {
@@ -91,7 +131,7 @@ export default function LoginPage() {
     router.push("/dashboard");
   };
 
-  const handleGoogleLogin = async () => {
+const handleGoogleLogin = async () => {
   setGoogleLoading(true);
 
   const popup = window.open(
@@ -110,8 +150,6 @@ export default function LoginPage() {
     return;
   }
 
-  googlePopupRef.current = popup;
-
   try {
     const { data, error } =
       await supabase.auth.signInWithOAuth({
@@ -123,7 +161,6 @@ export default function LoginPage() {
 
     if (error || !data?.url) {
       popup.close();
-      googlePopupRef.current = null;
       setGoogleLoading(false);
 
       toast.error(
@@ -136,39 +173,27 @@ export default function LoginPage() {
 
     popup.location.href = data.url;
 
-    const popupWatcher = window.setInterval(() => {
+    const watcher = window.setInterval(() => {
       if (popup.closed) {
-        window.clearInterval(popupWatcher);
+        window.clearInterval(watcher);
 
-        googlePopupRef.current = null;
-
-        // Check whether authentication succeeded.
         supabase.auth.getSession().then(
           ({ data: { session } }) => {
             if (session?.user) {
               setGoogleLoading(false);
               router.replace("/dashboard");
-            } else {
-              setGoogleLoading(false);
             }
           }
         );
       }
     }, 500);
   } catch (error) {
-    console.error(
-      "Google login error:",
-      error
-    );
+    console.error("Google login error:", error);
 
     popup.close();
-    googlePopupRef.current = null;
-
     setGoogleLoading(false);
 
-    toast.error(
-      "Unable to sign in with Google"
-    );
+    toast.error("Unable to sign in with Google");
   }
 };
 

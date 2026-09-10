@@ -5,42 +5,45 @@ import { supabase } from "@/lib/supabase";
 
 export default function PopupCallbackPage() {
   useEffect(() => {
-    let mounted = true;
-
     const finishAuth = async () => {
       try {
-        // Give Supabase a moment to process the OAuth URL fragment.
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
         const {
           data: { session },
         } = await supabase.auth.getSession();
 
-        if (!mounted) return;
-
-        if (session?.user) {
-          // Close the OAuth popup.
+        if (!session?.user) {
           window.close();
           return;
         }
 
-        // If the popup was not opened by window.open(),
-        // send it back to login instead of leaving a blank page.
-        window.location.replace("/login");
+        // Tell the main FlowSync window that Google login succeeded.
+        if (window.opener) {
+          window.opener.postMessage(
+            {
+              type: "FLOWSYNC_GOOGLE_LOGIN_SUCCESS",
+            },
+            window.location.origin
+          );
+        }
+
+        window.close();
       } catch (error) {
         console.error("Google popup callback error:", error);
 
-        if (mounted) {
-          window.close();
+        if (window.opener) {
+          window.opener.postMessage(
+            {
+              type: "FLOWSYNC_GOOGLE_LOGIN_ERROR",
+            },
+            window.location.origin
+          );
         }
+
+        window.close();
       }
     };
 
     finishAuth();
-
-    return () => {
-      mounted = false;
-    };
   }, []);
 
   return (
@@ -48,12 +51,8 @@ export default function PopupCallbackPage() {
       <div className="text-center">
         <div className="w-10 h-10 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin mx-auto mb-4" />
 
-        <h1 className="text-lg font-semibold text-gray-900">
-          Signing you in...
-        </h1>
-
-        <p className="text-sm text-gray-500 mt-1">
-          Please wait...
+        <p className="text-sm text-gray-500">
+          Completing Google sign in...
         </p>
       </div>
     </main>

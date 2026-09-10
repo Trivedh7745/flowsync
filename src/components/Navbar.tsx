@@ -13,7 +13,13 @@ export function Navbar() {
   const handleLogout = async () => {
   console.log("Logout clicked");
 
-  await supabase.auth.signOut();
+  const { error: signOutError } = await supabase.auth.signOut({
+  scope: "local",
+});
+
+if (signOutError) {
+  console.error("Sign out error:", signOutError);
+}
 
   console.log("Signed out");
 

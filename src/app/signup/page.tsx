@@ -88,8 +88,17 @@ export default function SignupPage() {
         );
 
         if (!checkResponse.ok) {
-          await supabase.auth.signOut();
+          const { error: signOutError } =
+  await supabase.auth.signOut({
+    scope: "local",
+  });
 
+if (signOutError) {
+  console.error(
+    "Google signup sign-out error:",
+    signOutError
+  );
+}
           sessionStorage.removeItem("flowsync_signup_company");
 
           toast.error("Unable to verify your FlowSync account");
@@ -103,7 +112,13 @@ export default function SignupPage() {
          * sign out and send them to Login.
          */
         if (checkData.exists) {
-          await supabase.auth.signOut();
+          const { error: signOutError } = await supabase.auth.signOut({
+  scope: "local",
+});
+
+if (signOutError) {
+  console.error("Sign out error:", signOutError);
+}
 
           sessionStorage.removeItem("flowsync_signup_company");
 
@@ -135,7 +150,13 @@ export default function SignupPage() {
         const workspaceData = await workspaceResponse.json();
 
         if (!workspaceResponse.ok) {
-          await supabase.auth.signOut();
+          const { error: signOutError } = await supabase.auth.signOut({
+  scope: "local",
+});
+
+if (signOutError) {
+  console.error("Sign out error:", signOutError);
+}
 
           sessionStorage.removeItem("flowsync_signup_company");
 
@@ -156,7 +177,13 @@ export default function SignupPage() {
          * → Login
          * → Dashboard
          */
-        await supabase.auth.signOut();
+        const { error: signOutError } = await supabase.auth.signOut({
+  scope: "local",
+});
+
+if (signOutError) {
+  console.error("Sign out error:", signOutError);
+}
 
         sessionStorage.removeItem("flowsync_signup_company");
 
@@ -168,7 +195,17 @@ export default function SignupPage() {
       } catch (error) {
         console.error("Google signup return error:", error);
 
-        await supabase.auth.signOut().catch(() => {});
+        const { error: signOutError } =
+  await supabase.auth.signOut({
+    scope: "local",
+  });
+
+if (signOutError) {
+  console.error(
+    "Sign out error:",
+    signOutError
+  );
+}
 
         sessionStorage.removeItem("flowsync_google_signup");
         sessionStorage.removeItem("flowsync_signup_company");
@@ -392,7 +429,13 @@ export default function SignupPage() {
        * Do not keep the user logged in after signup.
        * They should return Home and explicitly Login.
        */
-      await supabase.auth.signOut();
+      const { error: signOutError } = await supabase.auth.signOut({
+  scope: "local",
+});
+
+if (signOutError) {
+  console.error("Sign out error:", signOutError);
+}
 
       setShowVerification(false);
       setVerificationCode("");
