@@ -132,8 +132,6 @@ useEffect(() => {
   };
 
 const handleGoogleLogin = async () => {
-  setGoogleLoading(true);
-
   const popup = window.open(
     "",
     "flowsync-google-login",
@@ -141,59 +139,45 @@ const handleGoogleLogin = async () => {
   );
 
   if (!popup) {
-    setGoogleLoading(false);
-
-    toast.error(
-      "Please allow popups for FlowSync and try again."
-    );
-
+    toast.error("Please allow popups for Google login");
     return;
   }
 
   try {
-    const { data, error } =
-      await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/popup-callback`,
-        },
-      });
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/popup-callback`,
+      },
+    });
 
-    if (error || !data?.url) {
+    if (error) {
       popup.close();
-      setGoogleLoading(false);
-
-      toast.error(
-        error?.message ||
-          "Unable to connect to Google"
-      );
-
+      toast.error(error.message);
       return;
     }
 
-    popup.location.href = data.url;
+    if (data.url) {
+      popup.location.href = data.url;
+    }
 
-    const watcher = window.setInterval(() => {
+    const checkPopup = setInterval(async () => {
       if (popup.closed) {
-        window.clearInterval(watcher);
+        clearInterval(checkPopup);
 
-        supabase.auth.getSession().then(
-          ({ data: { session } }) => {
-            if (session?.user) {
-              setGoogleLoading(false);
-              router.replace("/dashboard");
-            }
-          }
-        );
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session?.user) {
+          window.location.replace("/dashboard");
+        }
       }
     }, 500);
   } catch (error) {
-    console.error("Google login error:", error);
-
     popup.close();
-    setGoogleLoading(false);
-
-    toast.error("Unable to sign in with Google");
+    console.error(error);
+    toast.error("Google login failed");
   }
 };
 

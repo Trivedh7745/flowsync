@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 
 export default function PopupCallbackPage() {
   useEffect(() => {
+    let handled = false;
+
     const finishAuth = async () => {
       try {
         const {
@@ -12,25 +14,24 @@ export default function PopupCallbackPage() {
         } = await supabase.auth.getSession();
 
         if (!session?.user) {
-          window.close();
+          // Give Supabase a moment to finish processing the OAuth session.
+          setTimeout(finishAuth, 300);
           return;
         }
 
-        // Tell the main FlowSync window that Google login succeeded.
-        if (window.opener) {
-          window.opener.postMessage(
-            {
-              type: "FLOWSYNC_GOOGLE_LOGIN_SUCCESS",
-            },
-            window.location.origin
-          );
+        if (handled) return;
+        handled = true;
+
+        // Redirect the ORIGINAL login window.
+        if (window.opener && !window.opener.closed) {
+          window.opener.location.replace("/dashboard");
         }
 
         window.close();
       } catch (error) {
         console.error("Google popup callback error:", error);
 
-        if (window.opener) {
+        if (window.opener && !window.opener.closed) {
           window.opener.postMessage(
             {
               type: "FLOWSYNC_GOOGLE_LOGIN_ERROR",
