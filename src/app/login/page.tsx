@@ -10,15 +10,23 @@ export default function LoginPage() {
   const googlePopupRef = useRef<Window | null>(null);
   const router = useRouter();
 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  /*
+   * Listen for Supabase authentication state changes.
+   *
+   * When Google authentication succeeds inside the popup,
+   * Supabase updates the auth session. Then redirect the
+   * main Login window to the Dashboard.
+   */
   useEffect(() => {
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange(
-    (event, session) => {
-      if (
-        event === "SIGNED_IN" &&
-        session?.user
-      ) {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
         googlePopupRef.current?.close();
         googlePopupRef.current = null;
 
@@ -28,158 +36,133 @@ export default function LoginPage() {
 
         router.replace("/dashboard");
       }
-    }
-  );
+    });
 
-  return () => {
-    subscription.unsubscribe();
-  };
-}, [router]);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
-useEffect(() => {
-  const handleGoogleMessage = async (event: MessageEvent) => {
-    if (event.origin !== window.location.origin) {
-      return;
-    }
-
-    if (
-      event.data?.type ===
-      "FLOWSYNC_GOOGLE_LOGIN_SUCCESS"
-    ) {
-      setGoogleLoading(false);
-
-      toast.success("Logged in successfully");
-
-      router.replace("/dashboard");
-    }
-
-    if (
-      event.data?.type ===
-      "FLOWSYNC_GOOGLE_LOGIN_ERROR"
-    ) {
-      setGoogleLoading(false);
-
-      toast.error("Google login failed");
-    }
-  };
-
-  window.addEventListener(
-    "message",
-    handleGoogleMessage
-  );
-
-  return () => {
-    window.removeEventListener(
-      "message",
-      handleGoogleMessage
-    );
-  };
-}, [router]);
-
-  useEffect(() => {
-  const handleAuthState = async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (session?.user) {
-      router.replace("/dashboard");
-    }
-  };
-
-  handleAuthState();
-
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange((event, session) => {
-    if (event === "SIGNED_IN" && session?.user) {
-      router.replace("/dashboard");
-    }
-  });
-
-  return () => {
-    subscription.unsubscribe();
-  };
-}, [router]);
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-
+  /*
+   * Email / Password Login
+   */
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       toast.error("Please enter your email and password");
       return;
     }
 
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-    setLoading(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
 
-    if (error) {
-      toast.error(error.message);
-      return;
+      toast.success("Logged in successfully");
+
+      router.replace("/dashboard");
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("Something went wrong during login");
+    } finally {
+      setLoading(false);
     }
-
-    toast.success("Logged in successfully");
-    router.push("/dashboard");
   };
 
-const handleGoogleLogin = async () => {
-  const popup = window.open(
-    "",
-    "flowsync-google-login",
-    "width=500,height=650,left=200,top=100"
-  );
+  /*
+   * Google Login using a popup.
+   *
+   * IMPORTANT:
+   * skipBrowserRedirect=true prevents Supabase from
+   * navigating the main Login page.
+   */
+  const handleGoogleLogin = async () => {
+    const popup = window.open(
+      "",
+      "flowsync-google-login",
+      "width=500,height=650,left=200,top=100"
+    );
 
-  if (!popup) {
-    toast.error("Please allow popups for Google login");
-    return;
-  }
-
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/popup-callback`,
-      },
-    });
-
-    if (error) {
-      popup.close();
-      toast.error(error.message);
+    if (!popup) {
+      toast.error("Please allow popups for Google login");
       return;
     }
 
-    if (data.url) {
-      popup.location.href = data.url;
-    }
+    setGoogleLoading(true);
+    googlePopupRef.current = popup;
 
-    const checkPopup = setInterval(async () => {
-      if (popup.closed) {
-        clearInterval(checkPopup);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/popup-callback`,
+          skipBrowserRedirect: true,
+        },
+      });
 
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+      if (error) {
+        popup.close();
+        googlePopupRef.current = null;
+        setGoogleLoading(false);
 
-        if (session?.user) {
-          window.location.replace("/dashboard");
-        }
+        toast.error(error.message);
+        return;
       }
-    }, 500);
-  } catch (error) {
-    popup.close();
-    console.error(error);
-    toast.error("Google login failed");
-  }
-};
+
+      if (!data.url) {
+        popup.close();
+        googlePopupRef.current = null;
+        setGoogleLoading(false);
+
+        toast.error("Unable to start Google login");
+        return;
+      }
+
+      /*
+       * Navigate only the popup to Google.
+       */
+      popup.location.href = data.url;
+
+      /*
+       * Backup check:
+       * If the popup closes after successful OAuth,
+       * verify that a session exists and then redirect.
+       */
+      const checkPopup = window.setInterval(async () => {
+        if (popup.closed) {
+          window.clearInterval(checkPopup);
+
+          googlePopupRef.current = null;
+
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (session?.user) {
+            setGoogleLoading(false);
+            window.location.replace("/dashboard");
+          } else {
+            setGoogleLoading(false);
+          }
+        }
+      }, 500);
+    } catch (error) {
+      console.error("Google login error:", error);
+
+      popup.close();
+      googlePopupRef.current = null;
+      setGoogleLoading(false);
+
+      toast.error("Google login failed");
+    }
+  };
 
   return (
     <main className="min-h-screen bg-white flex items-center justify-center px-4">
@@ -217,29 +200,32 @@ const handleGoogleLogin = async () => {
             className="w-full h-12 border border-gray-300 rounded-xl flex items-center justify-center gap-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition disabled:opacity-60"
           >
             <svg
-  width="20"
-  height="20"
-  viewBox="0 0 48 48"
-  xmlns="http://www.w3.org/2000/svg"
-  aria-hidden="true"
->
-  <path
-    fill="#EA4335"
-    d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.39 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.39 17.74 9.5 24 9.5z"
-  />
-  <path
-    fill="#4285F4"
-    d="M46.5 24.5c0-1.64-.15-3.22-.41-4.75H24v9h12.65c-.55 2.96-2.18 5.47-4.64 7.16l7.52 5.84C43.82 37.55 46.5 31.46 46.5 24.5z"
-  />
-  <path
-    fill="#FBBC05"
-    d="M10.54 28.59A14.39 14.39 0 0 1 9.5 24c0-1.59.27-3.13.75-4.59l-7.69-5.98A23.94 23.94 0 0 0 0 24c0 3.82.91 7.43 2.56 10.57l7.98-5.98z"
-  />
-  <path
-    fill="#34A853"
-    d="M24 48c6.47 0 11.9-2.14 15.87-5.81l-7.52-5.84c-2.09 1.4-4.77 2.23-8.35 2.23-6.26 0-11.57-3.89-13.46-9.34l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-  />
-</svg>
+              width="20"
+              height="20"
+              viewBox="0 0 48 48"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path
+                fill="#EA4335"
+                d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.39 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.39 17.74 9.5 24 9.5z"
+              />
+
+              <path
+                fill="#4285F4"
+                d="M46.5 24.5c0-1.64-.15-3.22-.41-4.75H24v9h12.65c-.55 2.96-2.18 5.47-4.64 7.16l7.52 5.84C43.82 37.55 46.5 31.46 46.5 24.5z"
+              />
+
+              <path
+                fill="#FBBC05"
+                d="M10.54 28.59A14.39 14.39 0 0 1 9.5 24c0-1.59.27-3.13.75-4.59l-7.69-5.98A23.94 23.94 0 0 0 0 24c0 3.82.91 7.43 2.56 10.57l7.98-5.98z"
+              />
+
+              <path
+                fill="#34A853"
+                d="M24 48c6.47 0 11.9-2.14 15.87-5.81l-7.52-5.84c-2.09 1.4-4.77 2.23-8.35 2.23-6.26 0-11.57-3.89-13.46-9.34l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+              />
+            </svg>
 
             {googleLoading
               ? "Connecting to Google..."
@@ -249,9 +235,11 @@ const handleGoogleLogin = async () => {
           {/* Divider */}
           <div className="flex items-center gap-4 my-6">
             <div className="flex-1 h-px bg-gray-200" />
+
             <span className="text-xs text-gray-400">
               OR
             </span>
+
             <div className="flex-1 h-px bg-gray-200" />
           </div>
 
@@ -298,6 +286,7 @@ const handleGoogleLogin = async () => {
               </div>
             </div>
 
+            {/* Login Button */}
             <button
               type="button"
               onClick={handleLogin}
@@ -325,6 +314,7 @@ const handleGoogleLogin = async () => {
           </p>
         </div>
 
+        {/* Footer */}
         <p className="text-center text-xs text-gray-400 mt-6">
           © {new Date().getFullYear()} FlowSync. All rights reserved.
         </p>
