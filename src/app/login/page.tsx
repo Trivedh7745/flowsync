@@ -68,11 +68,11 @@ export default function LoginPage() {
     setGoogleLoading(true);
 
     const { error } = await supabase.auth.signInWithOAuth({
-  provider: "google",
-  options: {
+    provider: "google",
+    options: {
     redirectTo: `${window.location.origin}/dashboard`,
-  },
-});
+    },
+    });
 
     if (error) {
       setGoogleLoading(false);

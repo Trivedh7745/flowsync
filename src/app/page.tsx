@@ -1,3 +1,8 @@
+"use client";
+
+import { useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+
 import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
 import { ProblemSection } from "@/components/ProblemSection";
@@ -13,6 +18,20 @@ import { Footer } from "@/components/Footer";
 import { InteractiveModals } from "@/components/InteractiveModals";
 
 export default function Home() {
+  useEffect(() => {
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        window.location.replace("/dashboard");
+      }
+    };
+
+    checkSession();
+  }, []);
+
   return (
     <main className="min-h-screen bg-background">
       <Navbar />
@@ -31,5 +50,4 @@ export default function Home() {
     </main>
   );
 }
-
 
