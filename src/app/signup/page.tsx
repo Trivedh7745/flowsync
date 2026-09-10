@@ -187,57 +187,122 @@ export default function SignupPage() {
    * Workspace is NOT created here.
    * It is created only after email OTP verification.
    */
+
   const handleSignup = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      toast.error("Please fill in all required fields");
+  if (!name.trim() || !email.trim() || !password.trim()) {
+    toast.error("Please fill in all required fields");
+    return;
+  }
+
+  if (password.length < 6) {
+    toast.error("Password must be at least 6 characters");
+    return;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  setLoading(true);
+
+  try {
+    /*
+     * First check whether this email already has
+     * a FlowSync workspace.
+     */
+    const checkResponse = await fetch(
+      `/api/signup?email=${encodeURIComponent(normalizedEmail)}`,
+      {
+        cache: "no-store",
+      }
+    );
+
+    if (!checkResponse.ok) {
+      toast.error("Unable to check this email address");
       return;
     }
 
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    const checkData = await checkResponse.json();
+
+    /*
+     * Existing FlowSync user:
+     * do not start another signup.
+     */
+    if (checkData.exists) {
+      toast.error(
+        "This email is already registered. Please login."
+      );
+
+      setTimeout(() => {
+        router.push("/login");
+      }, 1200);
+
       return;
     }
 
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: {
-            name: name.trim(),
-            company: company.trim() || null,
-          },
+    /*
+     * New FlowSync user:
+     * create the Supabase Auth account.
+     */
+    const { data, error } = await supabase.auth.signUp({
+      email: normalizedEmail,
+      password,
+      options: {
+        data: {
+          name: name.trim(),
+          company: company.trim() || null,
         },
-      });
+      },
+    });
 
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-
-      if (!data.user) {
-        toast.error("Unable to create account");
-        return;
-      }
+    if (error) {
+      const message = error.message.toLowerCase();
 
       /*
-       * Email confirmation is enabled.
-       * Show OTP verification screen.
+       * Handle any direct duplicate-email error returned
+       * by Supabase.
        */
-      setVerificationEmail(email.trim());
-      setVerificationCode("");
-      setShowVerification(true);
+      if (
+        message.includes("already registered") ||
+        message.includes("already exists") ||
+        message.includes("email_exists")
+      ) {
+        toast.error(
+          "This email is already registered. Please login."
+        );
 
-      toast.success("Verification code sent to your email");
-    } catch (error) {
-      console.error("Signup error:", error);
-      toast.error("Something went wrong");
-    } finally {
-      setLoading(false);
+        setTimeout(() => {
+          router.push("/login");
+        }, 1200);
+
+        return;
+      }
+
+      toast.error(error.message);
+      return;
     }
-  };
+
+    if (!data.user) {
+      toast.error("Unable to create account");
+      return;
+    }
+
+    /*
+     * Email confirmation is enabled.
+     * Do not create the workspace yet.
+     */
+    setVerificationEmail(normalizedEmail);
+    setVerificationCode("");
+    setShowVerification(true);
+
+    toast.success(
+      "Verification code sent to your email"
+    );
+  } catch (error) {
+    console.error("Signup error:", error);
+    toast.error("Something went wrong");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleResendCode = async () => {
   try {

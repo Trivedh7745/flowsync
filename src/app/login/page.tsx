@@ -1,13 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import toast from "react-hot-toast";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
+  const googlePopupRef = useRef<Window | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(
+    (event, session) => {
+      if (
+        event === "SIGNED_IN" &&
+        session?.user
+      ) {
+        googlePopupRef.current?.close();
+        googlePopupRef.current = null;
+
+        setGoogleLoading(false);
+
+        toast.success("Logged in successfully");
+
+        router.replace("/dashboard");
+      }
+    }
+  );
+
+  return () => {
+    subscription.unsubscribe();
+  };
+}, [router]);
 
   useEffect(() => {
   const handleAuthState = async () => {
@@ -65,20 +92,85 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    setGoogleLoading(true);
+  setGoogleLoading(true);
 
-    const { error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-    redirectTo: `${window.location.origin}/dashboard`,
-    },
-    });
+  const popup = window.open(
+    "",
+    "flowsync-google-login",
+    "width=500,height=650,left=200,top=100"
+  );
 
-    if (error) {
+  if (!popup) {
+    setGoogleLoading(false);
+
+    toast.error(
+      "Please allow popups for FlowSync and try again."
+    );
+
+    return;
+  }
+
+  googlePopupRef.current = popup;
+
+  try {
+    const { data, error } =
+      await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/popup-callback`,
+        },
+      });
+
+    if (error || !data?.url) {
+      popup.close();
+      googlePopupRef.current = null;
       setGoogleLoading(false);
-      toast.error(error.message);
+
+      toast.error(
+        error?.message ||
+          "Unable to connect to Google"
+      );
+
+      return;
     }
-  };
+
+    popup.location.href = data.url;
+
+    const popupWatcher = window.setInterval(() => {
+      if (popup.closed) {
+        window.clearInterval(popupWatcher);
+
+        googlePopupRef.current = null;
+
+        // Check whether authentication succeeded.
+        supabase.auth.getSession().then(
+          ({ data: { session } }) => {
+            if (session?.user) {
+              setGoogleLoading(false);
+              router.replace("/dashboard");
+            } else {
+              setGoogleLoading(false);
+            }
+          }
+        );
+      }
+    }, 500);
+  } catch (error) {
+    console.error(
+      "Google login error:",
+      error
+    );
+
+    popup.close();
+    googlePopupRef.current = null;
+
+    setGoogleLoading(false);
+
+    toast.error(
+      "Unable to sign in with Google"
+    );
+  }
+};
 
   return (
     <main className="min-h-screen bg-white flex items-center justify-center px-4">

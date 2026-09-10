@@ -6,11 +6,24 @@ export async function POST(request: Request) {
     const { name, email, company, userId } =
       await request.json();
 
-    // Check existing workspace
+    if (!name?.trim() || !email?.trim() || !userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Name, email and userId are required",
+        },
+        { status: 400 }
+      );
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check whether a FlowSync workspace already exists
+    // for this email.
     const existingWorkspace =
       await prisma.workspace.findFirst({
         where: {
-          email,
+          email: normalizedEmail,
         },
       });
 
@@ -18,16 +31,19 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         existing: true,
+        message:
+          "An account with this email already exists. Please login.",
         workspace: existingWorkspace,
       });
     }
 
+    // Create a new workspace
     const workspace =
       await prisma.workspace.create({
         data: {
-          name,
-          email,
-          company,
+          name: name.trim(),
+          email: normalizedEmail,
+          company: company?.trim() || null,
           userId,
         },
       });
@@ -35,13 +51,15 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       existing: false,
+      message: "Workspace created successfully",
       workspace,
     });
   } catch (error) {
-    console.error(error);
+    console.error("SIGNUP API ERROR:", error);
 
     return NextResponse.json(
       {
+        success: false,
         error:
           error instanceof Error
             ? error.message
@@ -52,8 +70,31 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const email = searchParams.get("email");
+
+    // Used by Google signup to check whether
+    // the email already belongs to a FlowSync workspace.
+    if (email) {
+      const normalizedEmail =
+        email.trim().toLowerCase();
+
+      const workspace =
+        await prisma.workspace.findFirst({
+          where: {
+            email: normalizedEmail,
+          },
+        });
+
+      return NextResponse.json({
+        exists: !!workspace,
+        workspace: workspace || null,
+      });
+    }
+
+    // Existing behavior: return all workspaces
     const workspaces =
       await prisma.workspace.findMany({
         orderBy: {
@@ -63,7 +104,7 @@ export async function GET() {
 
     return NextResponse.json(workspaces);
   } catch (error) {
-    console.error(error);
+    console.error("SIGNUP GET ERROR:", error);
 
     return NextResponse.json(
       { error: "Database error" },
