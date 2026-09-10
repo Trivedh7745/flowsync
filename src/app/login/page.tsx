@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import toast from "react-hot-toast";
@@ -8,6 +8,32 @@ import { Mail, Lock, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+
+  useEffect(() => {
+  const handleAuthState = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session?.user) {
+      router.replace("/dashboard");
+    }
+  };
+
+  handleAuthState();
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_IN" && session?.user) {
+      router.replace("/dashboard");
+    }
+  });
+
+  return () => {
+    subscription.unsubscribe();
+  };
+}, [router]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
