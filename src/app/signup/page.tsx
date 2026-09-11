@@ -111,24 +111,27 @@ if (signOutError) {
          * Existing Google user:
          * sign out and send them to Login.
          */
+
         if (checkData.exists) {
-          const { error: signOutError } = await supabase.auth.signOut({
-  scope: "local",
-});
+  const { error: signOutError } =
+    await supabase.auth.signOut({
+      scope: "local",
+    });
 
-if (signOutError) {
-  console.error("Sign out error:", signOutError);
+  if (signOutError) {
+    console.error("Google signup sign-out error:", signOutError);
+  }
+
+  sessionStorage.removeItem("flowsync_signup_company");
+
+  sessionStorage.setItem(
+    "flowsync_home_toast",
+    "This Google account already has a FlowSync account. Please log in from the Home page to continue."
+  );
+
+  window.location.replace("/");
+  return;
 }
-
-          sessionStorage.removeItem("flowsync_signup_company");
-
-          toast.error(
-            "This Google account already has a FlowSync account. Please login."
-          );
-
-          window.location.replace("/login");
-          return;
-        }
 
         /*
          * New Google user:
@@ -264,16 +267,16 @@ if (signOutError) {
      * do not start another signup.
      */
     if (checkData.exists) {
-      toast.error(
-        "This email is already registered. Please login."
-      );
+  await supabase.auth.signOut({ scope: "local" });
 
-      setTimeout(() => {
-        router.push("/login");
-      }, 1200);
+  sessionStorage.setItem(
+    "flowsync_home_toast",
+    "This email already has a FlowSync account. Please log in from the Home page to continue."
+  );
 
-      return;
-    }
+  window.location.replace("/");
+  return;
+}
 
     /*
      * New FlowSync user:
@@ -298,20 +301,20 @@ if (signOutError) {
        * by Supabase.
        */
       if (
-        message.includes("already registered") ||
-        message.includes("already exists") ||
-        message.includes("email_exists")
-      ) {
-        toast.error(
-          "This email is already registered. Please login."
-        );
+  message.includes("already registered") ||
+  message.includes("already exists") ||
+  message.includes("email_exists")
+) {
+  await supabase.auth.signOut({ scope: "local" });
 
-        setTimeout(() => {
-          router.push("/login");
-        }, 1200);
+  sessionStorage.setItem(
+    "flowsync_home_toast",
+    "This email already has a FlowSync account. Please log in from the Home page to continue."
+  );
 
-        return;
-      }
+  window.location.replace("/");
+  return;
+}
 
       toast.error(error.message);
       return;
@@ -439,7 +442,7 @@ if (signOutError) {
 
       setShowVerification(false);
       setVerificationCode("");
-      setVerificationSuccess(true);
+      setSignupSuccess(true);
 
       setTimeout(() => {
         window.location.replace("/");

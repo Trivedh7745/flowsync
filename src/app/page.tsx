@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import toast from "react-hot-toast";
+
 import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
 import { ProblemSection } from "@/components/ProblemSection";
@@ -15,6 +18,18 @@ import { Footer } from "@/components/Footer";
 import { InteractiveModals } from "@/components/InteractiveModals";
 
 export default function Home() {
+  useEffect(() => {
+    const message = sessionStorage.getItem("flowsync_home_toast");
+
+    if (message) {
+      sessionStorage.removeItem("flowsync_home_toast");
+
+      setTimeout(() => {
+        toast.error(message);
+      }, 100);
+    }
+  }, []);
+
   return (
     <main className="min-h-screen bg-background">
       <Navbar />
