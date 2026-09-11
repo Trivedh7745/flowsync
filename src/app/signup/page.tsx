@@ -112,27 +112,30 @@ if (signOutError) {
          * sign out and send them to Login.
          */
 
-        if (checkData.exists) {
+if (checkData.exists) {
   const { error: signOutError } =
     await supabase.auth.signOut({
       scope: "local",
     });
 
   if (signOutError) {
-    console.error("Google signup sign-out error:", signOutError);
+    console.error(
+      "Google signup sign-out error:",
+      signOutError
+    );
   }
 
+  sessionStorage.removeItem("flowsync_google_signup");
   sessionStorage.removeItem("flowsync_signup_company");
 
   sessionStorage.setItem(
     "flowsync_home_toast",
-    "This Google account already has a FlowSync account. Please log in from the Home page to continue."
+    "You already have a FlowSync account. Please log in from the Home page to continue."
   );
 
   window.location.replace("/");
   return;
 }
-
         /*
          * New Google user:
          * create the FlowSync workspace.
@@ -460,20 +463,14 @@ if (signOutError) {
   /*
    * Start Google signup.
    */
+
   const handleGoogleSignup = async () => {
-    /*
-     * Save the optional company name because the page
-     * will leave the browser during Google authentication.
-     */
+  try {
     sessionStorage.setItem(
       "flowsync_signup_company",
       company.trim()
     );
 
-    /*
-     * Tell the page that the next return is specifically
-     * a Google signup return.
-     */
     sessionStorage.setItem(
       "flowsync_google_signup",
       "true"
@@ -481,13 +478,12 @@ if (signOutError) {
 
     setGoogleLoading(true);
 
-    const { error } =
-      await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/signup`,
-        },
-      });
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/signup`,
+      },
+    });
 
     if (error) {
       sessionStorage.removeItem(
@@ -502,7 +498,22 @@ if (signOutError) {
 
       toast.error(error.message);
     }
-  };
+  } catch (error) {
+    console.error("Google signup start error:", error);
+
+    sessionStorage.removeItem(
+      "flowsync_google_signup"
+    );
+
+    sessionStorage.removeItem(
+      "flowsync_signup_company"
+    );
+
+    setGoogleLoading(false);
+
+    toast.error("Unable to start Google signup");
+  }
+};
 
   /*
    * Google signup / email signup success screen.
