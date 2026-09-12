@@ -31,7 +31,6 @@ export default function SignupPage() {
   const [showVerification, setShowVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationLoading, setVerificationLoading] = useState(false);
-  const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
 
   /*
@@ -58,6 +57,10 @@ export default function SignupPage() {
 
         const user = session.user;
 
+        const loadingToastId = toast.loading(
+        "Completing Google signup..."
+        );
+
         // Prevent this Google flow from running again.
         sessionStorage.removeItem("flowsync_google_signup");
 
@@ -80,6 +83,12 @@ export default function SignupPage() {
         /*
          * Check whether a workspace already exists.
          */
+        toast.loading(
+  "Checking your FlowSync account...",
+  {
+    id: loadingToastId,
+  }
+);
         const checkResponse = await fetch(
           `/api/signup?email=${encodeURIComponent(googleEmail)}`,
           {
@@ -87,47 +96,65 @@ export default function SignupPage() {
           }
         );
 
-        if (!checkResponse.ok) {
-          const { error: signOutError } =
-  await supabase.auth.signOut({
-    scope: "local",
-  });
+if (!checkResponse.ok) {
+  toast.dismiss(loadingToastId);
+  await supabase.auth
+    .signOut({
+      scope: "global",
+    })
+    .catch(() => {});
 
-if (signOutError) {
-  console.error(
-    "Google signup sign-out error:",
-    signOutError
+  sessionStorage.removeItem(
+    "flowsync_google_signup"
   );
+
+  sessionStorage.removeItem(
+    "flowsync_signup_company"
+  );
+
+  toast.error(
+    "Unable to verify your FlowSync account. Please try again."
+  );
+
+  return;
 }
-          sessionStorage.removeItem("flowsync_signup_company");
-
-          toast.error("Unable to verify your FlowSync account");
-          return;
-        }
-
         const checkData = await checkResponse.json();
 
         /*
          * Existing Google user:
          * sign out and send them to Login.
          */
-
 if (checkData.exists) {
+  toast.dismiss(loadingToastId);
+
   const { error: signOutError } =
     await supabase.auth.signOut({
-      scope: "local",
+      scope: "global",
     });
 
   if (signOutError) {
     console.error(
-      "Google signup sign-out error:",
+      "Google existing-account sign-out error:",
       signOutError
     );
   }
 
-  sessionStorage.removeItem("flowsync_google_signup");
-  sessionStorage.removeItem("flowsync_signup_company");
+  // Remove Google signup state
+  sessionStorage.removeItem(
+    "flowsync_google_signup"
+  );
 
+  sessionStorage.removeItem(
+    "flowsync_signup_company"
+  );
+
+  // IMPORTANT:
+  // Existing account must never show the signup-success card.
+  sessionStorage.removeItem(
+    "flowsync_signup_success"
+  );
+
+  // Show only the existing-account toast on Home
   sessionStorage.setItem(
     "flowsync_home_toast",
     "You already have a FlowSync account. Please log in from the Home page to continue."
@@ -140,6 +167,12 @@ if (checkData.exists) {
          * New Google user:
          * create the FlowSync workspace.
          */
+        toast.loading(
+  "Creating your FlowSync workspace...",
+  {
+    id: loadingToastId,
+  }
+);
         const workspaceResponse = await fetch("/api/signup", {
           method: "POST",
           headers: {
@@ -156,6 +189,7 @@ if (checkData.exists) {
         const workspaceData = await workspaceResponse.json();
 
         if (!workspaceResponse.ok) {
+
           const { error: signOutError } = await supabase.auth.signOut({
   scope: "local",
 });
@@ -183,21 +217,38 @@ if (signOutError) {
          * → Login
          * → Dashboard
          */
-        const { error: signOutError } = await supabase.auth.signOut({
-  scope: "local",
-});
+        const { error: signOutError } =
+  await supabase.auth.signOut({
+    scope: "global",
+  });
 
 if (signOutError) {
-  console.error("Sign out error:", signOutError);
+  console.error(
+    "Google signup sign-out error:",
+    signOutError
+  );
+
+  toast.error(
+    "Account created, but we could not finish signing out."
+  );
+
+  return;
 }
 
-        sessionStorage.removeItem("flowsync_signup_company");
+sessionStorage.removeItem(
+  "flowsync_google_signup"
+);
 
-        setSignupSuccess(true);
+sessionStorage.removeItem(
+  "flowsync_signup_company"
+);
 
-        setTimeout(() => {
-          window.location.replace("/");
-        }, 3000);
+sessionStorage.setItem(
+  "flowsync_signup_success",
+  "true"
+);
+
+window.location.replace("/");
       } catch (error) {
         console.error("Google signup return error:", error);
 
@@ -242,6 +293,9 @@ if (signOutError) {
     return;
   }
 
+  const loadingToastId = toast.loading(
+        "Completing Google signup..."
+        );
   const normalizedEmail = email.trim().toLowerCase();
 
   setLoading(true);
@@ -251,6 +305,12 @@ if (signOutError) {
      * First check whether this email already has
      * a FlowSync workspace.
      */
+    toast.loading(
+  "Checking your FlowSync account...",
+  {
+    id: loadingToastId,
+  }
+);
     const checkResponse = await fetch(
       `/api/signup?email=${encodeURIComponent(normalizedEmail)}`,
       {
@@ -435,21 +495,33 @@ if (signOutError) {
        * Do not keep the user logged in after signup.
        * They should return Home and explicitly Login.
        */
-      const { error: signOutError } = await supabase.auth.signOut({
-  scope: "local",
-});
+      const { error: signOutError } =
+  await supabase.auth.signOut({
+    scope: "global",
+  });
 
 if (signOutError) {
-  console.error("Sign out error:", signOutError);
+  console.error(
+    "Manual signup sign-out error:",
+    signOutError
+  );
+
+  toast.error(
+    "Account created, but we could not finish signing out."
+  );
+
+  return;
 }
 
-      setShowVerification(false);
-      setVerificationCode("");
-      setSignupSuccess(true);
+setShowVerification(false);
+setVerificationCode("");
 
-      setTimeout(() => {
-        window.location.replace("/");
-      }, 3000);
+sessionStorage.setItem(
+  "flowsync_signup_success",
+  "true"
+);
+
+window.location.replace("/");
     } catch (error) {
       console.error("Verification error:", error);
       toast.error(
@@ -464,43 +536,27 @@ if (signOutError) {
    * Start Google signup.
    */
 
-  const handleGoogleSignup = async () => {
-  try {
-    sessionStorage.setItem(
-      "flowsync_signup_company",
-      company.trim()
-    );
+const handleGoogleSignup = async () => {
+  sessionStorage.setItem(
+    "flowsync_signup_company",
+    company.trim()
+  );
 
-    sessionStorage.setItem(
-      "flowsync_google_signup",
-      "true"
-    );
+  sessionStorage.setItem(
+    "flowsync_google_signup",
+    "true"
+  );
 
-    setGoogleLoading(true);
+  setGoogleLoading(true);
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/signup`,
-      },
-    });
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/signup`,
+    },
+  });
 
-    if (error) {
-      sessionStorage.removeItem(
-        "flowsync_google_signup"
-      );
-
-      sessionStorage.removeItem(
-        "flowsync_signup_company"
-      );
-
-      setGoogleLoading(false);
-
-      toast.error(error.message);
-    }
-  } catch (error) {
-    console.error("Google signup start error:", error);
-
+  if (error) {
     sessionStorage.removeItem(
       "flowsync_google_signup"
     );
@@ -511,7 +567,7 @@ if (signOutError) {
 
     setGoogleLoading(false);
 
-    toast.error("Unable to start Google signup");
+    toast.error(error.message);
   }
 };
 
@@ -585,7 +641,7 @@ if (signOutError) {
               </h1>
 
               <p className="text-sm text-gray-500 mt-2">
-                We sent a 8-digit verification code to
+                We sent an 8-digit verification code to
               </p>
 
               <p className="text-sm font-semibold text-gray-900 mt-1 break-all">
