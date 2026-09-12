@@ -30,14 +30,12 @@ export default function SignupPage() {
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
-  const loadingToastId = toast.loading(
-        "Completing Google signup..."
-        );
   /*
    * Detect return from Google OAuth.
    */
   useEffect(() => {
     const handleGoogleSignupReturn = async () => {
+      let loadingToastId: string | undefined;
       try {
         const googleSignupStarted =
           sessionStorage.getItem("flowsync_google_signup") === "true";
@@ -56,6 +54,9 @@ export default function SignupPage() {
         }
 
         const user = session.user;
+        loadingToastId = toast.loading(
+        "Completing Google signup..."
+        );
 
         // Prevent this Google flow from running again.
         sessionStorage.removeItem("flowsync_google_signup");
@@ -79,7 +80,7 @@ export default function SignupPage() {
         /*
          * Check whether a workspace already exists.
          */
-        toast.loading(
+        loadingToastId = toast.loading(
   "Checking your FlowSync account...",
   {
     id: loadingToastId,
@@ -165,7 +166,7 @@ if (checkData.exists) {
          * New Google user:
          * create the FlowSync workspace.
          */
-        toast.loading(
+        loadingToastId = toast.loading(
   "Creating your FlowSync workspace...",
   {
     id: loadingToastId,
@@ -249,7 +250,9 @@ sessionStorage.setItem(
 
 window.location.replace("/");
       } catch (error) {
-        toast.dismiss(loadingToastId);
+        if (loadingToastId) {
+    toast.dismiss(loadingToastId);
+        }
         console.error("Google signup return error:", error);
 
         const { error: signOutError } =
