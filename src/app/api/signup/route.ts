@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(request: Request) {
   try {
@@ -70,44 +71,95 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(req.url);
     const email = searchParams.get("email");
 
-    // Used by Google signup to check whether
-    // the email already belongs to a FlowSync workspace.
-    if (email) {
-      const normalizedEmail =
-        email.trim().toLowerCase();
+    if (!email) {
+      const workspaces = await prisma.workspace.findMany();
 
-      const workspace =
-        await prisma.workspace.findFirst({
-          where: {
-            email: normalizedEmail,
-          },
-        });
-
-      return NextResponse.json({
-        exists: !!workspace,
-        workspace: workspace || null,
+      return Response.json({
+        success: true,
+        workspaces,
       });
     }
 
-    // Existing behavior: return all workspaces
-    const workspaces =
-      await prisma.workspace.findMany({
-        orderBy: {
-          createdAt: "desc",
-        },
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check FlowSync workspace first.
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        email: normalizedEmail,
+      },
+    });
+
+    // Check Supabase Auth users server-side.
+    let authUserExists = false;
+
+    let page = 1;
+    const perPage = 1000;
+
+    while (!authUserExists) {
+      const {
+        data: { users },
+        error,
+      } = await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage,
       });
 
-    return NextResponse.json(workspaces);
-  } catch (error) {
-    console.error("SIGNUP GET ERROR:", error);
+      if (error) {
+        console.error(
+          "Supabase Auth user lookup error:",
+          error
+        );
 
-    return NextResponse.json(
-      { error: "Database error" },
+        return Response.json(
+          {
+            error: "Unable to verify this email address",
+          },
+          { status: 500 }
+        );
+      }
+
+      const matchingUser = users.find(
+        (user) =>
+          user.email?.trim().toLowerCase() ===
+          normalizedEmail
+      );
+
+      if (matchingUser) {
+        authUserExists = true;
+        break;
+      }
+
+      if (users.length < perPage) {
+        break;
+      }
+
+      page += 1;
+    }
+
+    const exists =
+      Boolean(workspace) || authUserExists;
+
+    return Response.json({
+      exists,
+      workspaceExists: Boolean(workspace),
+      authUserExists,
+      workspace: workspace || null,
+    });
+  } catch (error) {
+    console.error(
+      "GET /api/signup error:",
+      error
+    );
+
+    return Response.json(
+      {
+        error: "Unable to check this email address",
+      },
       { status: 500 }
     );
   }
