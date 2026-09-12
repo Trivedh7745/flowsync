@@ -25,14 +25,14 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const [signupSuccess, setSignupSuccess] = useState(false);
-
   // Email verification
   const [showVerification, setShowVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
-
+  const loadingToastId = toast.loading(
+        "Completing Google signup..."
+        );
   /*
    * Detect return from Google OAuth.
    */
@@ -56,10 +56,6 @@ export default function SignupPage() {
         }
 
         const user = session.user;
-
-        const loadingToastId = toast.loading(
-        "Completing Google signup..."
-        );
 
         // Prevent this Google flow from running again.
         sessionStorage.removeItem("flowsync_google_signup");
@@ -125,11 +121,9 @@ if (!checkResponse.ok) {
          * sign out and send them to Login.
          */
 if (checkData.exists) {
-  toast.dismiss(loadingToastId);
-
   const { error: signOutError } =
     await supabase.auth.signOut({
-      scope: "global",
+      scope: "local",
     });
 
   if (signOutError) {
@@ -139,22 +133,26 @@ if (checkData.exists) {
     );
   }
 
-  // Remove Google signup state
-  sessionStorage.removeItem(
-    "flowsync_google_signup"
-  );
+  const {
+    data: { session: remainingSession },
+  } = await supabase.auth.getSession();
 
-  sessionStorage.removeItem(
-    "flowsync_signup_company"
-  );
+  if (remainingSession) {
+    console.error(
+      "Google existing-account session still exists after sign out"
+    );
 
-  // IMPORTANT:
-  // Existing account must never show the signup-success card.
-  sessionStorage.removeItem(
-    "flowsync_signup_success"
-  );
+    toast.error(
+      "We could not complete sign out. Please try again."
+    );
 
-  // Show only the existing-account toast on Home
+    return;
+  }
+
+  sessionStorage.removeItem("flowsync_google_signup");
+  sessionStorage.removeItem("flowsync_signup_company");
+  sessionStorage.removeItem("flowsync_signup_success");
+
   sessionStorage.setItem(
     "flowsync_home_toast",
     "You already have a FlowSync account. Please log in from the Home page to continue."
@@ -189,7 +187,7 @@ if (checkData.exists) {
         const workspaceData = await workspaceResponse.json();
 
         if (!workspaceResponse.ok) {
-
+        toast.dismiss(loadingToastId);
           const { error: signOutError } = await supabase.auth.signOut({
   scope: "local",
 });
@@ -234,6 +232,7 @@ if (signOutError) {
 
   return;
 }
+toast.dismiss(loadingToastId);
 
 sessionStorage.removeItem(
   "flowsync_google_signup"
@@ -250,6 +249,7 @@ sessionStorage.setItem(
 
 window.location.replace("/");
       } catch (error) {
+        toast.dismiss(loadingToastId);
         console.error("Google signup return error:", error);
 
         const { error: signOutError } =
@@ -293,9 +293,6 @@ if (signOutError) {
     return;
   }
 
-  const loadingToastId = toast.loading(
-        "Completing Google signup..."
-        );
   const normalizedEmail = email.trim().toLowerCase();
 
   setLoading(true);
@@ -305,12 +302,6 @@ if (signOutError) {
      * First check whether this email already has
      * a FlowSync workspace.
      */
-    toast.loading(
-  "Checking your FlowSync account...",
-  {
-    id: loadingToastId,
-  }
-);
     const checkResponse = await fetch(
       `/api/signup?email=${encodeURIComponent(normalizedEmail)}`,
       {
@@ -331,6 +322,10 @@ if (signOutError) {
      */
     if (checkData.exists) {
   await supabase.auth.signOut({ scope: "local" });
+
+  sessionStorage.removeItem(
+  "flowsync_signup_success"
+);
 
   sessionStorage.setItem(
     "flowsync_home_toast",
@@ -369,6 +364,10 @@ if (signOutError) {
   message.includes("email_exists")
 ) {
   await supabase.auth.signOut({ scope: "local" });
+
+  sessionStorage.removeItem(
+  "flowsync_signup_success"
+);
 
   sessionStorage.setItem(
     "flowsync_home_toast",
@@ -495,14 +494,14 @@ if (signOutError) {
        * Do not keep the user logged in after signup.
        * They should return Home and explicitly Login.
        */
-      const { error: signOutError } =
+const { error: signOutError } =
   await supabase.auth.signOut({
-    scope: "global",
+    scope: "local",
   });
 
 if (signOutError) {
   console.error(
-    "Manual signup sign-out error:",
+    "Google signup sign-out error:",
     signOutError
   );
 
@@ -513,8 +512,24 @@ if (signOutError) {
   return;
 }
 
-setShowVerification(false);
-setVerificationCode("");
+const {
+  data: { session: remainingSession },
+} = await supabase.auth.getSession();
+
+if (remainingSession) {
+  console.error(
+    "Google signup session still exists after sign out"
+  );
+
+  toast.error(
+    "Account created, but the login session could not be cleared."
+  );
+
+  return;
+}
+
+sessionStorage.removeItem("flowsync_google_signup");
+sessionStorage.removeItem("flowsync_signup_company");
 
 sessionStorage.setItem(
   "flowsync_signup_success",
@@ -570,36 +585,6 @@ const handleGoogleSignup = async () => {
     toast.error(error.message);
   }
 };
-
-  /*
-   * Google signup / email signup success screen.
-   */
-  if (signupSuccess) {
-    return (
-      <main className="min-h-screen bg-white flex items-center justify-center px-4">
-        <div className="w-full max-w-md text-center">
-          <div className="bg-white border border-gray-200 rounded-[22px] shadow-[0_10px_40px_rgba(0,0,0,0.08)] px-8 py-12">
-            <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-9 h-9 text-green-600" />
-            </div>
-
-            <h1 className="text-2xl font-bold text-gray-900">
-              Signup Successful
-            </h1>
-
-            <p className="text-sm text-gray-500 mt-3">
-              Your FlowSync workspace has been created
-              successfully.
-            </p>
-
-            <p className="text-xs text-gray-400 mt-5">
-              Returning to FlowSync home...
-            </p>
-          </div>
-        </div>
-      </main>
-    );
-  }
 
   /*
    * Manual email verification screen.
