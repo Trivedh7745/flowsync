@@ -11,40 +11,39 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [showSignoutDialog, setShowSignoutDialog] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
 
   const router = useRouter();
 
   useEffect(() => {
-    // Load current authenticated user
-    const loadUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      setUser(user);
-    };
-
-    loadUser();
-
-    // Listen for login/logout changes
+  const loadUser = async () => {
     const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    // Handle navbar scroll effect
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
+    setUser(session?.user ?? null);
+    setAuthLoading(false);
+  };
 
-    window.addEventListener("scroll", handleScroll);
+  loadUser();
 
-    return () => {
-      subscription.unsubscribe();
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    setUser(session?.user ?? null);
+  });
+
+  const handleScroll = () => {
+    setIsScrolled(window.scrollY > 20);
+  };
+
+  window.addEventListener("scroll", handleScroll);
+
+  return () => {
+    subscription.unsubscribe();
+    window.removeEventListener("scroll", handleScroll);
+  };
+}, []);
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut({
@@ -125,39 +124,41 @@ export function Navbar() {
 
             {/* Desktop Right Side Actions */}
             <div className="hidden md:flex items-center space-x-4">
-              {user ? (
-                <>
-                  <button
-                    onClick={() => router.push("/dashboard")}
-                    className="text-sm font-medium bg-foreground text-background hover:bg-foreground/90 px-4 py-2 rounded-full transition-colors cursor-pointer"
-                  >
-                    Dashboard
-                  </button>
+              {authLoading ? (
+  <div className="w-32 h-10" />
+) : user ? (
+  <>
+    <button
+      onClick={() => router.push("/dashboard")}
+      className="text-sm font-medium bg-foreground text-background hover:bg-foreground/90 px-4 py-2 rounded-full transition-colors cursor-pointer"
+    >
+      Dashboard
+    </button>
 
-                  <button
-                    onClick={() => setShowSignoutDialog(true)}
-                    className="text-sm font-medium hover:text-primary-600 transition-colors cursor-pointer"
-                  >
-                    Sign out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => router.push("/login")}
-                    className="text-sm font-medium hover:text-primary-600 transition-colors cursor-pointer"
-                  >
-                    Log in
-                  </button>
+    <button
+      onClick={() => setShowSignoutDialog(true)}
+      className="text-sm font-medium hover:text-primary-600 transition-colors cursor-pointer"
+    >
+      Sign out
+    </button>
+  </>
+) : (
+  <>
+    <button
+      onClick={() => router.push("/login")}
+      className="text-sm font-medium hover:text-primary-600 transition-colors cursor-pointer"
+    >
+      Log in
+    </button>
 
-                  <button
-                    onClick={() => router.push("/signup")}
-                    className="text-sm font-medium bg-foreground text-background hover:bg-foreground/90 px-4 py-2 rounded-full transition-colors flex items-center gap-2 cursor-pointer"
-                  >
-                    Sign up
-                  </button>
-                </>
-              )}
+    <button
+      onClick={() => router.push("/signup")}
+      className="text-sm font-medium bg-foreground text-background hover:bg-foreground/90 px-4 py-2 rounded-full transition-colors cursor-pointer"
+    >
+      Sign up
+    </button>
+  </>
+)}
             </div>
 
             {/* Mobile Menu Button */}
@@ -212,52 +213,51 @@ export function Navbar() {
             </a>
 
             <div className="h-px bg-border my-2" />
+            {authLoading ? null : user ? (
+  <>
+    <button
+      onClick={() => {
+        setMobileMenuOpen(false);
+        router.push("/dashboard");
+      }}
+      className="text-base font-medium text-left"
+    >
+      Dashboard
+    </button>
 
-            {user ? (
-              <>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    router.push("/dashboard");
-                  }}
-                  className="text-base font-medium text-left"
-                >
-                  Dashboard
-                </button>
+    <button
+      onClick={() => {
+        setMobileMenuOpen(false);
+        setShowSignoutDialog(true);
+      }}
+      className="text-base font-medium text-left"
+    >
+      Sign out
+    </button>
+  </>
+) : (
+  <>
+    <button
+      onClick={() => {
+        setMobileMenuOpen(false);
+        router.push("/login");
+      }}
+      className="text-base font-medium text-left"
+    >
+      Log in
+    </button>
 
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setShowSignoutDialog(true);
-                  }}
-                  className="text-base font-medium text-left"
-                >
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    router.push("/login");
-                  }}
-                  className="text-base font-medium text-left"
-                >
-                  Log in
-                </button>
-
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    router.push("/signup");
-                  }}
-                  className="text-base font-medium bg-foreground text-background px-4 py-2 rounded-lg text-center cursor-pointer"
-                >
-                  Sign up
-                </button>
-              </>
-            )}
+    <button
+      onClick={() => {
+        setMobileMenuOpen(false);
+        router.push("/signup");
+      }}
+      className="text-base font-medium bg-foreground text-background px-4 py-2 rounded-lg text-center cursor-pointer"
+    >
+      Sign up
+    </button>
+  </>
+)}
           </div>
         )}
       </nav>
