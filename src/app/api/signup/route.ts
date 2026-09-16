@@ -19,8 +19,7 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Check whether a FlowSync workspace already exists
-    // for this email.
+    // Check whether a FlowSync workspace already exists.
     const existingWorkspace =
       await prisma.workspace.findFirst({
         where: {
@@ -38,7 +37,67 @@ export async function POST(request: Request) {
       });
     }
 
-    // Create a new workspace
+    // Verify that the Supabase Auth user exists.
+    let authUserExists = false;
+    let page = 1;
+    const perPage = 1000;
+
+    while (!authUserExists) {
+      const {
+        data: { users },
+        error,
+      } = await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage,
+      });
+
+      if (error) {
+        console.error(
+          "Supabase Auth user lookup error:",
+          error
+        );
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Unable to verify Supabase account",
+          },
+          { status: 500 }
+        );
+      }
+
+      const matchingUser = users.find(
+        (user) =>
+          user.email?.trim().toLowerCase() ===
+          normalizedEmail
+      );
+
+      if (matchingUser) {
+        authUserExists = true;
+        break;
+      }
+
+      if (users.length < perPage) {
+        break;
+      }
+
+      page += 1;
+    }
+
+    // A workspace should only be created for an existing
+    // Supabase Auth account.
+    if (!authUserExists) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Supabase account was not found. Please complete account verification first.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Create a new workspace.
     const workspace =
       await prisma.workspace.create({
         data: {

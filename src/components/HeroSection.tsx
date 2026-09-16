@@ -211,12 +211,12 @@ export function HeroSection() {
                 Start Free
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-              <button 
-                onClick={() => window.dispatchEvent(new CustomEvent("open-modal", { detail: { type: "demo" } }))}
-                className="w-full sm:w-auto px-8 py-4 bg-transparent border border-border hover:bg-muted rounded-full font-medium text-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                Book Demo
-              </button>
+              <a
+  href="#problem"
+  className="w-full sm:w-auto px-8 py-4 bg-transparent border border-border hover:bg-muted rounded-full font-medium text-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+>
+  View More
+</a>
             </motion.div>
 
             <motion.div

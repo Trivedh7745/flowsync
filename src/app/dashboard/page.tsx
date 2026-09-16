@@ -835,6 +835,21 @@ if (daysRemaining !== null) {
 
 }
 
+const handleSignOut = async () => {
+  const { error } = await supabase.auth.signOut({
+    scope: "local",
+  });
+
+  if (error) {
+    console.error("Sign out error:", error);
+    toast.error("Unable to sign out");
+    return;
+  }
+
+  toast.success("Logged out successfully");
+  router.replace("/");
+};
+
 const filteredInvoices = invoices
 
 .filter((invoice: any) => {
@@ -7235,6 +7250,7 @@ overflow-y-auto
           type="button"
           onClick={() => {
             setShowProfileMenu(false);
+            handleSignOut();
 
             // add your sign-out function here
             // e.g. handleSignOut()
@@ -7262,7 +7278,7 @@ overflow-y-auto
           />
 
           <span>
-            Sign out
+            Log out
           </span>
 
         </button>
